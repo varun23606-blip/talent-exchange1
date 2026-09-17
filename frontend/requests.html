@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exchange Requests - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container" style="max-width: 900px;">
+    <div class="section-head" style="margin-bottom: 24px;">
+      <div>
+        <h1 style="font-size: 2rem; font-weight: 800;">Skill Exchange Requests</h1>
+        <p style="color: var(--text-secondary);">Manage inbound exchange proposals and track outgoing invitations</p>
+      </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="incoming">Incoming Proposals</button>
+      <button class="tab-btn" data-tab="outgoing">Sent Proposals</button>
+    </div>
+
+    <!-- Incoming Tab -->
+    <div id="tab-incoming">
+      <div id="incoming-requests-list">
+        <div class="skeleton" style="height: 100px; border-radius: 12px; margin-bottom: 12px;"></div>
+        <div class="skeleton" style="height: 100px; border-radius: 12px; margin-bottom: 12px;"></div>
+      </div>
+    </div>
+
+    <!-- Outgoing Tab -->
+    <div id="tab-outgoing" style="display: none;">
+      <div id="outgoing-requests-list">
+        <div class="skeleton" style="height: 100px; border-radius: 12px; margin-bottom: 12px;"></div>
+        <div class="skeleton" style="height: 100px; border-radius: 12px; margin-bottom: 12px;"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/requests.js"></script>
+</body>
+</html>

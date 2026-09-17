@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-header">
+        <img src="assets/logo.svg" class="auth-logo" alt="Talent Exchange">
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Sign in to your student talent exchange account</p>
+      </div>
+
+      <div id="auth-error" class="error-banner"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="login-email">Student Email</label>
+          <input type="email" id="login-email" class="form-input" placeholder="student@talentexchange.edu" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="login-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" class="password-toggle" data-target="login-password">Show</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 10px;">
+          Sign In
+        </button>
+
+        <p class="auth-footer-text">
+          Don't have an account? <a href="register.html">Register here</a>
+        </p>
+
+        <div style="margin-top:20px; padding:12px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.82rem; color:var(--text-muted); text-align:center;">
+          💡 <strong>Demo Accounts Available:</strong><br>
+          <code>mahadev@talentexchange.edu</code> / <code>Password123!</code><br>
+          <code>rahul@talentexchange.edu</code> / <code>Password123!</code>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => renderNavbar("login"));
+  </script>
+</body>
+</html>
