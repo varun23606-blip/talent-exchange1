@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="auth-wrapper">
+    <div class="auth-card auth-wide">
+      <div class="auth-header">
+        <img src="assets/logo.svg" class="auth-logo" alt="Talent Exchange">
+        <h1 class="auth-title">Join Talent Exchange</h1>
+        <p class="auth-subtitle">Create your student profile and start trading knowledge</p>
+      </div>
+
+      <div id="auth-error" class="error-banner"></div>
+
+      <form id="register-form">
+        <div class="auth-form-grid">
+          <div class="form-group">
+            <label class="form-label" for="reg-name">Full Name *</label>
+            <input type="text" id="reg-name" class="form-input" placeholder="e.g. Rahul Sharma" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-email">Student Email *</label>
+            <input type="email" id="reg-email" class="form-input" placeholder="name@talentexchange.edu" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-password">Password (min 6 chars) *</label>
+            <div class="password-wrapper">
+              <input type="password" id="reg-password" class="form-input" placeholder="••••••••" required>
+              <button type="button" class="password-toggle" data-target="reg-password">Show</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-confirm-password">Confirm Password *</label>
+            <div class="password-wrapper">
+              <input type="password" id="reg-confirm-password" class="form-input" placeholder="••••••••" required>
+              <button type="button" class="password-toggle" data-target="reg-confirm-password">Show</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-dept">Department / Major</label>
+            <input type="text" id="reg-dept" class="form-input" placeholder="e.g. Computer Science & Eng.">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-semester">Semester / Year</label>
+            <input type="text" id="reg-semester" class="form-input" placeholder="e.g. Semester 5">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-teach-skill">Skill I Can Teach *</label>
+            <input type="text" id="reg-teach-skill" class="form-input" placeholder="e.g. Python, Guitar, UI/UX" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-learn-skill">Skill I Want to Learn *</label>
+            <input type="text" id="reg-learn-skill" class="form-input" placeholder="e.g. Web Development, Music" required>
+          </div>
+
+          <div class="form-group col-full">
+            <label class="form-label" for="reg-image">Profile Photo URL (Optional)</label>
+            <input type="url" id="reg-image" class="form-input" placeholder="https://images.unsplash.com/...">
+          </div>
+
+          <div class="form-group col-full">
+            <label class="form-label" for="reg-bio">Short Bio & Collaboration Interests</label>
+            <textarea id="reg-bio" class="form-textarea" placeholder="Tell other students what you are working on, your projects, or your learning goals..."></textarea>
+          </div>
+
+          <!-- Optional Skill Certificate Verification -->
+          <div class="form-group col-full" style="background: rgba(99, 102, 241, 0.05); border: 1px dashed var(--primary); border-radius: var(--radius-md); padding: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: #fff;">
+                🛡️ Skill Certificate Verification (Optional)
+              </label>
+              <span class="badge badge-verified" style="font-size: 0.72rem;">Earn Mentor Badge</span>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
+              Upload your diploma, certificate, or course completion credential to prove your skill and gain verified status.
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+              <div>
+                <label class="form-label" for="reg-cert-title" style="font-size: 0.82rem;">Certificate Title / Issuer</label>
+                <input type="text" id="reg-cert-title" class="form-input" placeholder="e.g. AWS Certified Solutions Architect, PCAP Python, etc.">
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size: 0.82rem;">Upload Certificate File (PDF or Image)</label>
+                <input type="file" id="reg-cert-file" class="form-input" accept=".pdf,.png,.jpg,.jpeg,.webp" style="padding: 8px;">
+              </div>
+
+              <div>
+                <label class="form-label" for="reg-cert-url" style="font-size: 0.82rem;">Or Certificate URL / Credly Link</label>
+                <input type="url" id="reg-cert-url" class="form-input" placeholder="https://www.credly.com/badges/... or https://...">
+              </div>
+            </div>
+            <div id="reg-cert-status" style="font-size: 0.82rem; color: var(--success); margin-top: 8px; display: none;"></div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 12px;">
+          Create My Profile
+        </button>
+
+        <p class="auth-footer-text">
+          Already registered? <a href="login.html">Sign In</a>
+        </p>
+      </form>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => renderNavbar("register"));
+  </script>
+</body>
+</html>

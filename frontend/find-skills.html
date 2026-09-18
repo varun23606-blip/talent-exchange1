@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Skills - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container">
+    <div class="section-head" style="margin-bottom: 24px;">
+      <div>
+        <h1 style="font-size: 2rem; font-weight: 800;">Find Skill Partners</h1>
+        <p style="color: var(--text-secondary);">Search for students teaching the skills you want to learn</p>
+      </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <form class="filter-toolbar" id="filter-form">
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label" for="search-input">Search by Name or Keyword</label>
+        <input type="text" id="search-input" class="form-input" placeholder="e.g. Python, Rahul, Machine Learning...">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label" for="skill-filter">Filter by Skill</label>
+        <input type="text" id="skill-filter" class="form-input" placeholder="e.g. Guitar, UI/UX, C++">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label" for="dept-filter">Department</label>
+        <select id="dept-filter" class="form-select">
+          <option value="">All Departments</option>
+          <option value="Computer Science">Computer Science</option>
+          <option value="Information Technology">Information Technology</option>
+          <option value="Design & Media">Design & Media</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Mechanical">Mechanical</option>
+          <option value="Business & Management">Business & Management</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; justify-content: center;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-primary); font-size: 0.92rem; font-weight: 600; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-md); width: 100%;">
+          <input type="checkbox" id="filter-verified" style="accent-color: var(--primary); width: 18px; height: 18px; cursor: pointer;">
+          <span>🛡️ Verified Mentors</span>
+        </label>
+      </div>
+
+      <div>
+        <button type="submit" class="btn btn-primary" style="height: 48px; width: 100%;">
+          🔍 Filter
+        </button>
+      </div>
+    </form>
+
+    <!-- Results Grid -->
+    <div class="grid-users" id="skills-results-grid">
+      <!-- Dynamically filled by skills.js -->
+      <div class="skeleton" style="height: 240px; border-radius: 18px;"></div>
+      <div class="skeleton" style="height: 240px; border-radius: 18px;"></div>
+      <div class="skeleton" style="height: 240px; border-radius: 18px;"></div>
+    </div>
+  </main>
+
+  <!-- Exchange Request Modal -->
+  <div class="modal-backdrop" id="exchange-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Send Exchange Proposal</h3>
+        <button class="modal-close" type="button">&times;</button>
+      </div>
+      <form id="exchange-form">
+        <div class="modal-body">
+          <input type="hidden" id="modal-receiver-id">
+          <p style="margin-bottom:18px;color:var(--text-secondary);">
+            Send a skill exchange proposal to <strong id="modal-receiver-name" style="color:#fff;">Student</strong>:
+          </p>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-offered-skill">What You Can Teach Them</label>
+            <input type="text" id="modal-offered-skill" class="form-input" required placeholder="e.g. Python backend development">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-requested-skill">What You Want Them to Teach You</label>
+            <input type="text" id="modal-requested-skill" class="form-input" required placeholder="e.g. Guitar lessons">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Send Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Profile Details Modal -->
+  <div class="modal-backdrop" id="profile-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Student Profile</h3>
+        <button class="modal-close" type="button">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align: center;">
+        <img id="modal-profile-img" src="assets/avatar-default.svg" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin: 0 auto 16px auto;" alt="Avatar">
+        <h2 id="modal-profile-name" style="font-size: 1.4rem; font-weight: 800; margin-bottom: 4px;">Student Name</h2>
+        <div id="modal-profile-meta" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 12px;">Department</div>
+        <div id="modal-profile-cert-pill" style="margin-bottom: 16px; display: none;"></div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; text-align: left;">
+          <div style="margin-bottom: 8px;">
+            <strong style="color: var(--text-secondary); font-size: 0.85rem;">TEACHES:</strong>
+            <span id="modal-profile-teach" class="badge badge-purple" style="margin-left: 8px;">Skill</span>
+          </div>
+          <div>
+            <strong style="color: var(--text-secondary); font-size: 0.85rem;">LEARNING:</strong>
+            <span id="modal-profile-learn" class="badge badge-emerald" style="margin-left: 8px;">Skill</span>
+          </div>
+        </div>
+
+        <div style="text-align: left;">
+          <strong style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 6px;">ABOUT:</strong>
+          <p id="modal-profile-bio" style="color: var(--text-primary); font-size: 0.95rem; line-height: 1.5;"></p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary modal-cancel">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/skills.js"></script>
+</body>
+</html>
