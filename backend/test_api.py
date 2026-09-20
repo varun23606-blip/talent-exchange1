@@ -180,5 +180,38 @@ class TalentExchangeAPITest(unittest.TestCase):
         users_json = res_users.get_json()
         self.assertTrue(all(u["is_verified"] for u in users_json["data"]))
 
+    def test_10_admin_login_and_endpoints(self):
+        # 1. Test Admin Login
+        res_admin = self.client.post("/api/login", json={
+            "email": "admin@talentexchange.edu",
+            "password": "Admin123!"
+        })
+        self.assertEqual(res_admin.status_code, 200)
+        admin_data = res_admin.get_json()
+        self.assertTrue(admin_data["success"])
+        self.assertEqual(admin_data["data"]["role"], "admin")
+
+        # 2. Test Admin Overview
+        res_overview = self.client.get("/api/admin/overview")
+        self.assertEqual(res_overview.status_code, 200)
+        overview_data = res_overview.get_json()
+        self.assertTrue(overview_data["success"])
+        self.assertIn("total_users", overview_data["data"])
+        self.assertIn("verified_mentors", overview_data["data"])
+
+        # 3. Test Admin Verifications List
+        res_verifs = self.client.get("/api/admin/verifications")
+        self.assertEqual(res_verifs.status_code, 200)
+        verifs_data = res_verifs.get_json()
+        self.assertTrue(verifs_data["success"])
+        self.assertIsInstance(verifs_data["data"], list)
+
+        # 4. Test Admin Users List
+        res_users = self.client.get("/api/admin/users")
+        self.assertEqual(res_users.status_code, 200)
+        users_data = res_users.get_json()
+        self.assertTrue(users_data["success"])
+        self.assertTrue(any(u["role"] == "admin" for u in users_data["data"]))
+
 if __name__ == "__main__":
     unittest.main()

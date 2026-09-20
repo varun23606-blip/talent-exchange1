@@ -901,6 +901,85 @@ def get_stats():
         }
     }), 200
 
+# -------------------------------------------------------------
+# ADMIN PORTAL ENDPOINTS
+# -------------------------------------------------------------
+
+@app.route("/api/admin/overview", methods=["GET"])
+def admin_overview():
+    u_count = database.execute_query("SELECT COUNT(*) as c FROM users WHERE role != 'admin'", fetchone=True)
+    s_count = database.execute_query("SELECT COUNT(*) as c FROM skills", fetchone=True)
+    v_count = database.execute_query("SELECT COUNT(*) as c FROM users WHERE is_verified = 1 AND role != 'admin'", fetchone=True)
+    p_count = database.execute_query("SELECT COUNT(*) as c FROM users WHERE (verification_status = 'pending' OR (certificate_url != '' AND is_verified = 0)) AND role != 'admin'", fetchone=True)
+    e_count = database.execute_query("SELECT COUNT(*) as c FROM exchange_requests", fetchone=True)
+    c_count = database.execute_query("SELECT COUNT(*) as c FROM connections", fetchone=True)
+
+    return jsonify({
+        "success": True,
+        "data": {
+            "total_users": u_count["result"]["c"] if u_count and u_count["result"] else 0,
+            "total_skills": s_count["result"]["c"] if s_count and s_count["result"] else 0,
+            "verified_mentors": v_count["result"]["c"] if v_count and v_count["result"] else 0,
+            "pending_verifications": p_count["result"]["c"] if p_count and p_count["result"] else 0,
+            "total_exchanges": e_count["result"]["c"] if e_count and e_count["result"] else 0,
+            "total_connections": c_count["result"]["c"] if c_count and c_count["result"] else 0
+        }
+    }), 200
+
+@app.route("/api/admin/verifications", methods=["GET"])
+def admin_verifications():
+    query = """
+        SELECT u.id as user_id, u.name, u.email, u.department, u.semester, u.profile_image,
+               u.verification_status as user_status, u.is_verified as user_is_verified,
+               s.id as skill_id, s.skill_name, s.skill_level, s.certificate_title, s.certificate_url,
+               s.video_url, s.verification_status as skill_status, s.is_verified as skill_is_verified,
+               s.created_at
+        FROM users u
+        JOIN skills s ON u.id = s.user_id
+        WHERE (s.certificate_url != '' OR u.certificate_url != '')
+        ORDER BY s.is_verified ASC, s.id DESC
+    """
+    res = database.execute_query(query, fetchall=True)
+    items = []
+    for r in (res["result"] or []):
+        item = dict(r)
+        item["cert_url"] = item.get("certificate_url") or ""
+        item["cert_title"] = item.get("certificate_title") or "Skill Credential"
+        item["is_verified"] = bool(item.get("skill_is_verified") or item.get("user_is_verified"))
+        items.append(item)
+
+    return jsonify({"success": True, "data": items}), 200
+
+@app.route("/api/admin/users", methods=["GET"])
+def admin_get_users():
+    query = """
+        SELECT u.id, u.name, u.email, u.department, u.semester, u.role, u.profile_image,
+               u.verification_status, u.is_verified, u.created_at,
+               (SELECT COUNT(*) FROM skills WHERE user_id = u.id) as skills_count,
+               (SELECT COUNT(*) FROM connections WHERE user1_id = u.id OR user2_id = u.id) as connections_count
+        FROM users u
+        ORDER BY u.role DESC, u.id DESC
+    """
+    res = database.execute_query(query, fetchall=True)
+    users = []
+    for r in (res["result"] or []):
+        u = dict(r)
+        u["is_verified"] = bool(u.get("is_verified"))
+        users.append(u)
+
+    return jsonify({"success": True, "data": users}), 200
+
+@app.route("/api/admin/users/<int:user_id>", methods=["DELETE"])
+def admin_delete_user(user_id):
+    target = database.execute_query("SELECT role FROM users WHERE id = ?", (user_id,), fetchone=True)
+    if not target or not target["result"]:
+        return jsonify({"success": False, "message": "User not found"}), 404
+    if target["result"]["role"] == "admin":
+        return jsonify({"success": False, "message": "Cannot delete administrator accounts"}), 403
+
+    database.execute_query("DELETE FROM users WHERE id = ?", (user_id,), commit=True)
+    return jsonify({"success": True, "message": "User deleted successfully"}), 200
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

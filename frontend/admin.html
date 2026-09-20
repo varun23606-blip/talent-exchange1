@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Console - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <style>
+    .admin-badge {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    .admin-table th {
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+    .admin-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-primary);
+      vertical-align: middle;
+    }
+    .admin-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container" style="padding-top: 24px; padding-bottom: 60px;">
+    <!-- Admin Header Banner -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+          <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0;">Administrator Control Console</h1>
+          <span class="admin-badge">🛡️ ADMIN PORTAL</span>
+        </div>
+        <p style="color: var(--text-secondary); margin: 0; font-size: 0.95rem;">
+          Platform moderation, skill credential verifications, and student activity oversight
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button id="btn-refresh" class="btn btn-secondary btn-sm">🔄 Refresh Data</button>
+        <a href="dashboard.html" class="btn btn-secondary btn-sm">👤 Switch to Student View</a>
+        <button id="btn-admin-logout" class="btn btn-danger btn-sm">🚪 Logout</button>
+      </div>
+    </div>
+
+    <!-- Quick Metric Overview -->
+    <section class="grid-metrics" style="margin-bottom: 36px;">
+      <div class="metric-card">
+        <div class="metric-icon-box metric-icon-purple">👥</div>
+        <div class="metric-info">
+          <h4>Total Students</h4>
+          <div class="metric-value" id="stat-total-users">0</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-box metric-icon-indigo">💡</div>
+        <div class="metric-info">
+          <h4>Skills Offered</h4>
+          <div class="metric-value" id="stat-total-skills">0</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-box metric-icon-emerald">🛡️</div>
+        <div class="metric-info">
+          <h4>Verified Mentors</h4>
+          <div class="metric-value" id="stat-verified-mentors">0</div>
+        </div>
+      </div>
+
+      <div class="metric-card" style="border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.03);">
+        <div class="metric-icon-box metric-icon-amber">⏳</div>
+        <div class="metric-info">
+          <h4 style="color: #fbbf24;">Pending Review</h4>
+          <div class="metric-value" id="stat-pending-verifications" style="color: #fbbf24;">0</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 1: Skill Certificate Verifications -->
+    <div style="margin-bottom: 40px;">
+      <div class="section-head">
+        <div>
+          <h2 style="font-size: 1.3rem;">📜 Mentor Skill Certificate Verifications</h2>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin: 0;">
+            Review uploaded diplomas, certificates, and credentials. Approving grants the student the "Verified Mentor 🛡️" badge.
+          </p>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Skill Offered</th>
+              <th>Certificate Title</th>
+              <th>Document & Demo</th>
+              <th>Status</th>
+              <th style="text-align: right;">Review Action</th>
+            </tr>
+          </thead>
+          <tbody id="verifications-table-body">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-secondary);">
+                Loading verification requests...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 2: Student Directory & Management -->
+    <div>
+      <div class="section-head" style="margin-bottom: 16px;">
+        <div>
+          <h2 style="font-size: 1.3rem;">👥 Student & User Directory</h2>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin: 0;">
+            Manage registered accounts, view connections, and ensure platform safety.
+          </p>
+        </div>
+        <div>
+          <input type="text" id="search-users-input" class="form-input" placeholder="🔍 Search by name or email..." style="width: 260px; padding: 8px 12px; font-size: 0.85rem;">
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Department / Sem</th>
+              <th>Role</th>
+              <th>Skills Count</th>
+              <th>Connections</th>
+              <th>Verification</th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body">
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-secondary);">
+                Loading student records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

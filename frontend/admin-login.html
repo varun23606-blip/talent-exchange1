@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="auth-wrapper">
+    <div class="auth-card" style="border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 20px 40px rgba(245, 158, 11, 0.08);">
+      <div class="auth-header">
+        <img src="assets/logo.svg" class="auth-logo" alt="Talent Exchange">
+        <div style="margin: 10px 0;">
+          <span class="badge badge-amber" style="font-size: 0.85rem; padding: 6px 14px; font-weight: 700; letter-spacing: 0.5px;">
+            🛡️ ADMIN PORTAL
+          </span>
+        </div>
+        <h1 class="auth-title">Administrator Sign In</h1>
+        <p class="auth-subtitle">Platform oversight, mentor certificate verification, and user management</p>
+      </div>
+
+      <div id="auth-error" class="error-banner"></div>
+
+      <form id="admin-login-form">
+        <div class="form-group">
+          <label class="form-label" for="admin-email">Admin Email</label>
+          <input type="email" id="admin-email" class="form-input" placeholder="admin@talentexchange.edu" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="admin-password">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="admin-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" class="password-toggle" data-target="admin-password">Show</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+          🛡️ Sign In to Admin Console
+        </button>
+
+        <!-- Quick 1-Click Demo Fill -->
+        <button type="button" id="btn-autofill-admin" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 10px; font-size: 0.82rem;">
+          ⚡ Auto-fill Admin Demo Credentials
+        </button>
+
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); text-align: center;">
+          <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 6px;">
+            Are you a student or peer mentor?
+          </p>
+          <a href="login.html" class="btn btn-secondary btn-sm" style="display: inline-block; font-size: 0.84rem;">
+            👤 Switch to User / Student Login →
+          </a>
+        </div>
+
+        <div style="margin-top:16px; padding:12px; background:rgba(245, 158, 11, 0.05); border:1px solid rgba(245, 158, 11, 0.2); border-radius:var(--radius-sm); font-size:0.8rem; color:var(--text-muted); text-align:center;">
+          🔑 <strong>Default Admin Account:</strong><br>
+          <code>admin@talentexchange.edu</code> / <code>Admin123!</code>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      renderNavbar("admin-login");
+
+      const toggles = document.querySelectorAll(".password-toggle");
+      toggles.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const targetId = btn.dataset.target;
+          const input = document.getElementById(targetId);
+          if (input) {
+            input.type = input.type === "password" ? "text" : "password";
+            btn.textContent = input.type === "password" ? "Show" : "Hide";
+          }
+        });
+      });
+
+      // Autofill demo button
+      const autofillBtn = document.getElementById("btn-autofill-admin");
+      if (autofillBtn) {
+        autofillBtn.addEventListener("click", () => {
+          document.getElementById("admin-email").value = "admin@talentexchange.edu";
+          document.getElementById("admin-password").value = "Admin123!";
+          showToast("Admin credentials filled! Click 'Sign In' to proceed.", "info");
+        });
+      }
+
+      // Handle Admin Login Submission
+      const form = document.getElementById("admin-login-form");
+      const errBanner = document.getElementById("auth-error");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (errBanner) errBanner.classList.remove("show");
+
+        const email = document.getElementById("admin-email").value.trim();
+        const password = document.getElementById("admin-password").value;
+        const submitBtn = form.querySelector("button[type='submit']");
+
+        if (!email || !password) {
+          showError("Please enter both email and password.");
+          return;
+        }
+
+        setLoading(submitBtn, true);
+
+        try {
+          const res = await api.post("/api/login", { email, password });
+          if (res.success && res.data) {
+            const user = res.data;
+            if (user.role !== "admin") {
+              showError("Access Denied: This account does not possess administrator privileges. Please use the Student Login.");
+              setLoading(submitBtn, false);
+              return;
+            }
+
+            setCurrentUser(user);
+            showToast("Welcome Administrator! Redirecting to Admin Console...", "success");
+            setTimeout(() => {
+              window.location.href = "admin.html";
+            }, 600);
+          } else {
+            showError(res.message || "Invalid credentials.");
+            setLoading(submitBtn, false);
+          }
+        } catch (err) {
+          showError(err.message || "Login failed. Please verify credentials.");
+          setLoading(submitBtn, false);
+        }
+      });
+
+      function showError(msg) {
+        if (errBanner) {
+          errBanner.textContent = msg;
+          errBanner.classList.add("show");
+        } else {
+          showToast(msg, "error");
+        }
+      }
+    });
+  </script>
+</body>
+</html>

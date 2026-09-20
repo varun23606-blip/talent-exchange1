@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sqlite3
 from urllib.parse import urlparse
 from werkzeug.security import generate_password_hash
@@ -349,21 +349,31 @@ def seed_demo_data():
              "Google UX Design Professional Certificate"),
             commit=True
         )
+        # 4. Administrator
+        admin_pwd = generate_password_hash("Admin123!")
+        execute_query(
+            """INSERT INTO users (name, email, password_hash, department, semester, bio, profile_image, role, verification_status, is_verified)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'admin', 'verified', 1)""",
+            ("System Administrator", "admin@talentexchange.edu", admin_pwd, "Administration", "Staff",
+             "Campus Administrator overseeing skill exchanges, mentor verifications, and community safety.",
+             "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80"),
+            commit=True
+        )
     else:
         # Update existing seed users if they have empty certificates
         execute_query(
             """UPDATE users 
                SET verification_status = 'verified', is_verified = 1,
-                   certificate_url = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80'
+                    certificate_url = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80'
                WHERE email = 'rahul@talentexchange.edu' AND (certificate_url IS NULL OR certificate_url = '')""",
             commit=True
         )
         execute_query(
             """UPDATE skills 
                SET verification_status = 'verified', is_verified = 1,
-                   certificate_title = 'Trinity College London - Acoustic Guitar Grade 6 Distinction',
-                   certificate_url = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80',
-                   video_url = 'https://assets.mixkit.co/videos/preview/mixkit-guitarist-playing-an-acoustic-guitar-3437-large.mp4'
+                    certificate_title = 'Trinity College London - Acoustic Guitar Grade 6 Distinction',
+                    certificate_url = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80',
+                    video_url = 'https://assets.mixkit.co/videos/preview/mixkit-guitarist-playing-an-acoustic-guitar-3437-large.mp4'
                WHERE skill_name = 'Guitar' AND (certificate_url IS NULL OR certificate_url = '')""",
             commit=True
         )
@@ -371,16 +381,29 @@ def seed_demo_data():
         execute_query(
             """UPDATE users 
                SET verification_status = 'verified', is_verified = 1,
-                   certificate_url = 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800&auto=format&fit=crop&q=80'
+                    certificate_url = 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800&auto=format&fit=crop&q=80'
                WHERE email = 'mahadev@talentexchange.edu' AND (certificate_url IS NULL OR certificate_url = '')""",
             commit=True
         )
         execute_query(
             """UPDATE skills 
                SET verification_status = 'verified', is_verified = 1,
-                   certificate_title = 'Python Institute - Certified Associate in Python Programming (PCAP)',
-                   certificate_url = 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800&auto=format&fit=crop&q=80',
-                   video_url = 'https://assets.mixkit.co/videos/preview/mixkit-software-developer-working-on-code-42352-large.mp4'
+                    certificate_title = 'Python Institute - Certified Associate in Python Programming (PCAP)',
+                    certificate_url = 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800&auto=format&fit=crop&q=80',
+                    video_url = 'https://assets.mixkit.co/videos/preview/mixkit-software-developer-working-on-code-42352-large.mp4'
                WHERE skill_name = 'Python' AND (certificate_url IS NULL OR certificate_url = '')""",
             commit=True
         )
+
+        # Ensure admin account exists in existing databases
+        admin_check = execute_query("SELECT id FROM users WHERE email = 'admin@talentexchange.edu'", fetchone=True)
+        if not admin_check or not admin_check["result"]:
+            admin_pwd = generate_password_hash("Admin123!")
+            execute_query(
+                """INSERT INTO users (name, email, password_hash, department, semester, bio, profile_image, role, verification_status, is_verified)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'admin', 'verified', 1)""",
+                ("System Administrator", "admin@talentexchange.edu", admin_pwd, "Administration", "Staff",
+                 "Campus Administrator overseeing skill exchanges, mentor verifications, and community safety.",
+                 "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80"),
+                commit=True
+            )

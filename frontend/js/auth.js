@@ -3,9 +3,10 @@
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // If already logged in, redirect to dashboard
-  if (isAuthenticated() && (window.location.pathname.endsWith("login.html") || window.location.pathname.endsWith("register.html"))) {
-    window.location.href = "dashboard.html";
+  // If already logged in, redirect to appropriate portal
+  if (isAuthenticated() && (window.location.pathname.endsWith("login.html") || window.location.pathname.endsWith("register.html") || window.location.pathname.endsWith("admin-login.html"))) {
+    const user = getCurrentUser();
+    window.location.href = (user && user.role === "admin") ? "admin.html" : "dashboard.html";
     return;
   }
 
@@ -64,9 +65,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const res = await api.post("/api/login", { email, password });
         if (res.success && res.data) {
           setCurrentUser(res.data);
-          showToast("Welcome back! Redirecting...", "success");
+          const isAdm = res.data.role === "admin";
+          showToast(isAdm ? "Welcome Administrator! Redirecting to Admin Console..." : "Welcome back! Redirecting...", "success");
           setTimeout(() => {
-            window.location.href = "dashboard.html";
+            window.location.href = isAdm ? "admin.html" : "dashboard.html";
           }, 600);
         } else {
           showError(res.message || "Invalid credentials.");

@@ -316,7 +316,12 @@ function renderNavbar(activePage = "") {
   let navActionsHtml = "";
 
   if (loggedIn) {
-    navLinksHtml = `
+    const isAdmin = user.role === "admin";
+    navLinksHtml = isAdmin ? `
+      <li><a href="admin.html" class="nav-link ${activePage === 'admin' ? 'active' : ''}">🛡️ Admin Console</a></li>
+      <li><a href="find-skills.html" class="nav-link ${activePage === 'find-skills' ? 'active' : ''}">Find Skills</a></li>
+      <li><a href="dashboard.html" class="nav-link ${activePage === 'dashboard' ? 'active' : ''}">Student View</a></li>
+    ` : `
       <li><a href="dashboard.html" class="nav-link ${activePage === 'dashboard' ? 'active' : ''}">Dashboard</a></li>
       <li><a href="find-skills.html" class="nav-link ${activePage === 'find-skills' ? 'active' : ''}">Find Skills</a></li>
       <li><a href="offer-skill.html" class="nav-link ${activePage === 'offer-skill' ? 'active' : ''}">Offer Skill</a></li>
@@ -326,10 +331,12 @@ function renderNavbar(activePage = "") {
     `;
 
     navActionsHtml = `
-      <a href="requests.html" class="notif-btn" id="notif-bell" title="Notifications">
-        🔔
-        <span class="notif-badge" id="notif-count" style="display: none;">0</span>
-      </a>
+      ${!isAdmin ? `
+        <a href="requests.html" class="notif-btn" id="notif-bell" title="Notifications">
+          🔔
+          <span class="notif-badge" id="notif-count" style="display: none;">0</span>
+        </a>
+      ` : ''}
       <div class="user-menu-wrapper">
         <div class="user-menu-trigger" id="user-menu-btn">
           <img src="${user.profile_image || 'assets/avatar-default.svg'}" class="user-menu-avatar" alt="${user.name}" onerror="this.src='assets/avatar-default.svg'">
@@ -337,6 +344,7 @@ function renderNavbar(activePage = "") {
           <span style="font-size:0.7rem;">▼</span>
         </div>
         <div class="user-dropdown" id="user-dropdown">
+          ${isAdmin ? '<a href="admin.html" class="dropdown-item" style="color:#fbbf24; font-weight:600;">🛡️ Admin Console</a>' : ''}
           <a href="profile.html" class="dropdown-item">👤 My Profile</a>
           <a href="offer-skill.html" class="dropdown-item">💡 My Skills</a>
           <a href="connections.html" class="dropdown-item">👥 My Connections</a>
@@ -353,7 +361,8 @@ function renderNavbar(activePage = "") {
     `;
 
     navActionsHtml = `
-      <a href="login.html" class="btn btn-secondary btn-sm">Login</a>
+      <a href="login.html" class="btn btn-secondary btn-sm" title="Student Login">User Login</a>
+      <a href="admin-login.html" class="btn btn-secondary btn-sm" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;" title="Administrator Portal">🛡️ Admin</a>
       <a href="register.html" class="btn btn-primary btn-sm">Register</a>
     `;
   }
@@ -361,7 +370,7 @@ function renderNavbar(activePage = "") {
   navPlaceholder.innerHTML = `
     <nav class="navbar">
       <div class="nav-container">
-        <a href="${loggedIn ? 'dashboard.html' : 'index.html'}" class="nav-brand">
+        <a href="${loggedIn ? (user.role === 'admin' ? 'admin.html' : 'dashboard.html') : 'index.html'}" class="nav-brand">
           <img src="assets/logo.svg" alt="Talent Exchange Logo">
           <span class="brand-text">Talent<span>Exchange</span></span>
         </a>
