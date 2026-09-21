@@ -56,7 +56,7 @@ def init_firebase():
                 if storage_bucket_name:
                     app_options['storageBucket'] = storage_bucket_name
                 elif hasattr(cred, 'project_id') and cred.project_id:
-                    app_options['storageBucket'] = f"{cred.project_id}.appspot.com"
+                    app_options['storageBucket'] = f"{cred.project_id}.firebasestorage.app"
                 
                 firebase_admin.initialize_app(cred, app_options)
 
@@ -79,10 +79,10 @@ def init_firebase():
 
     # Development Fallback Mode
     FIREBASE_STATUS = "local_dev_fallback"
-    PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "talent-exchange-dev")
-    STORAGE_BUCKET = storage_bucket_name or f"{PROJECT_ID}.appspot.com"
-    print("[Firebase Notice]: Running in local development fallback mode.")
-    print("To connect live Firebase, place 'serviceAccountKey.json' in 'backend/' or set FIREBASE_SERVICE_ACCOUNT.")
+    PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "talent-exchange-b8827")
+    STORAGE_BUCKET = storage_bucket_name or f"{PROJECT_ID}.firebasestorage.app"
+    print(f"[Firebase Notice]: Running in local development mode for project '{PROJECT_ID}'.")
+    print("To enable full server-side Firebase Admin execution, place 'serviceAccountKey.json' in 'backend/' or set FIREBASE_SERVICE_ACCOUNT.")
 
 def get_firestore_client():
     if _firestore_client is None and FIREBASE_STATUS == "uninitialized":

@@ -1,32 +1,70 @@
 /**
  * ==============================================================================
- * TALENT EXCHANGE - FIREBASE CLIENT CONFIGURATION
+ * TALENT EXCHANGE - FIREBASE CLIENT CONFIGURATION & INITIALIZATION
  * ==============================================================================
- * 
- * HOW TO OBTAIN YOUR CONFIGURATION:
- * 1. Visit the Firebase Console: https://console.firebase.google.com
- * 2. Select or create your project (e.g. "talent-exchange").
- * 3. Go to Project Settings (gear icon) -> General.
- * 4. Scroll down to "Your apps" and click the Web icon (</>).
- * 5. Register app name "Talent Exchange" and copy the firebaseConfig object below.
+ * Project: talent-exchange-b8827
+ * Connected on: 2026-09-21
  * ==============================================================================
  */
 
-const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "your-talent-exchange-project.firebaseapp.com",
-  projectId: "your-talent-exchange-project",
-  storageBucket: "your-talent-exchange-project.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef1234567890"
+// Official Firebase Web configuration for Talent Exchange
+const firebaseConfig = {
+  apiKey: "AIzaSyD9LKX1GFGJXnNWWZOQZon4VyEx6b0a65Y",
+  authDomain: "talent-exchange-b8827.firebaseapp.com",
+  projectId: "talent-exchange-b8827",
+  storageBucket: "talent-exchange-b8827.firebasestorage.app",
+  messagingSenderId: "166142955644",
+  appId: "1:166142955644:web:b30063851d3c4cac48b9f9",
+  measurementId: "G-JRCG828E5X"
 };
 
+const FIREBASE_CONFIG = firebaseConfig;
+
+let _firebaseApp = null;
+let _firestoreDb = null;
+let _firebaseStorage = null;
+let _firebaseAuth = null;
+
 /**
- * Checks if the developer has configured live Firebase Web credentials.
+ * Initializes the Firebase Web SDK if the SDK is loaded in window.
+ */
+function initFirebaseClient() {
+  if (typeof window !== "undefined" && typeof window.firebase !== "undefined") {
+    try {
+      if (!window.firebase.apps || window.firebase.apps.length === 0) {
+        _firebaseApp = window.firebase.initializeApp(firebaseConfig);
+        console.log("[Firebase Client]: Initialized app for project:", firebaseConfig.projectId);
+      } else {
+        _firebaseApp = window.firebase.apps[0];
+      }
+
+      if (typeof window.firebase.firestore === "function") {
+        _firestoreDb = window.firebase.firestore();
+        console.log("[Firebase Client]: Cloud Firestore ready.");
+      }
+      if (typeof window.firebase.storage === "function") {
+        _firebaseStorage = window.firebase.storage();
+        console.log("[Firebase Client]: Cloud Storage ready (bucket: " + firebaseConfig.storageBucket + ").");
+      }
+      if (typeof window.firebase.auth === "function") {
+        _firebaseAuth = window.firebase.auth();
+      }
+    } catch (err) {
+      console.warn("[Firebase Client Init]:", err.message);
+    }
+  }
+  return _firebaseApp;
+}
+
+/**
+ * Checks if the project is configured with live Firebase credentials.
  */
 function isFirebaseConfigured() {
-  return FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY_HERE" &&
-         FIREBASE_CONFIG.projectId !== "your-talent-exchange-project";
+  return Boolean(
+    FIREBASE_CONFIG.apiKey &&
+    FIREBASE_CONFIG.projectId === "talent-exchange-b8827" &&
+    FIREBASE_CONFIG.apiKey.startsWith("AIza")
+  );
 }
 
 /**
@@ -36,9 +74,45 @@ function getFirebaseConfig() {
   return FIREBASE_CONFIG;
 }
 
-// Attach globally for access across frontend scripts
+/**
+ * Direct file upload helper to Firebase Cloud Storage (bucket: talent-exchange-b8827.firebasestorage.app)
+ */
+async function uploadToFirebaseStorage(file, folder = "uploads") {
+  if (!_firebaseStorage) {
+    initFirebaseClient();
+  }
+
+  if (!_firebaseStorage) {
+    throw new Error("Firebase Storage SDK is not loaded. Falling back to backend server upload.");
+  }
+
+  const timestamp = Date.now();
+  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const filePath = `${folder}/${timestamp}_${cleanName}`;
+  const storageRef = _firebaseStorage.ref().child(filePath);
+
+  const snapshot = await storageRef.put(file);
+  const downloadUrl = await snapshot.ref.getDownloadURL();
+
+  return {
+    success: true,
+    url: downloadUrl,
+    filename: cleanName,
+    storage: "firebase_cloud_storage"
+  };
+}
+
+// Global exports
 if (typeof window !== "undefined") {
+  window.firebaseConfig = firebaseConfig;
   window.FIREBASE_CONFIG = FIREBASE_CONFIG;
   window.isFirebaseConfigured = isFirebaseConfigured;
   window.getFirebaseConfig = getFirebaseConfig;
+  window.initFirebaseClient = initFirebaseClient;
+  window.uploadToFirebaseStorage = uploadToFirebaseStorage;
+
+  // Auto-initialize if Firebase script already loaded
+  if (typeof window.firebase !== "undefined") {
+    initFirebaseClient();
+  }
 }

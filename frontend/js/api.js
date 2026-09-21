@@ -69,6 +69,27 @@ const api = {
   },
 
   async upload(file, type = "") {
+    // 1. If Firebase Client SDK is initialized, try direct Cloud Storage upload
+    if (typeof window !== "undefined" && typeof window.uploadToFirebaseStorage === "function" && typeof window.firebase !== "undefined" && window.firebase.storage) {
+      try {
+        const folder = type === "video" ? "videos" : type === "certificate" ? "certificates" : "uploads";
+        const cloudRes = await window.uploadToFirebaseStorage(file, folder);
+        if (cloudRes && cloudRes.url) {
+          console.log("[Client Firebase Storage]: Uploaded directly to cloud bucket:", cloudRes.url);
+          return {
+            success: true,
+            url: cloudRes.url,
+            filename: cloudRes.filename,
+            type: type || "file",
+            storage: "firebase_cloud_storage"
+          };
+        }
+      } catch (clientErr) {
+        console.warn("[Firebase Storage Client Notice]:", clientErr.message, "- Falling back to backend server upload.");
+      }
+    }
+
+    // 2. Fallback to backend REST API upload endpoint
     const url = `${API_BASE_URL}/api/upload`;
     const formData = new FormData();
     formData.append("file", file);

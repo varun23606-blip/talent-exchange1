@@ -82,15 +82,15 @@ This guide explains how **Firebase** powers the **Talent Exchange** backend (Clo
 ---
 
 ### Step 4: Download your Private Key (`serviceAccountKey.json`)
-1. In the Firebase Console, click the **Settings Gear (⚙️)** next to "Project Overview" → **Project settings**.
-2. Click the **Service accounts** tab.
-3. Click the blue button **"Generate new private key"**.
-4. Confirm by clicking **"Generate key"**. A `.json` file will download to your computer.
-5. Rename the downloaded file to:
+1. Open your project's service account settings directly:
+   👉 **[Firebase Console Service Accounts (talent-exchange-b8827)](https://console.firebase.google.com/project/talent-exchange-b8827/settings/serviceaccounts/adminsdk)**
+2. Click the blue button **"Generate new private key"**.
+3. Confirm by clicking **"Generate key"**. A `.json` file will download to your computer.
+4. Rename the downloaded file to:
    ```
    serviceAccountKey.json
    ```
-6. Move `serviceAccountKey.json` into the `talent-exchange/backend/` directory:
+5. Move `serviceAccountKey.json` into the `talent-exchange/backend/` directory:
    ```
    talent-exchange/
    ├── backend/
@@ -105,22 +105,20 @@ This guide explains how **Firebase** powers the **Talent Exchange** backend (Clo
 
 ---
 
-### Step 5: (Optional) Configure Frontend Web App Keys
-If you want to use the optional client-side Firebase SDK:
-1. In Firebase Console, go to **Project settings** → **General**.
-2. Scroll down to **Your apps**, click the **Web icon (`</>`)**.
-3. Register app name: `Talent Exchange Web`.
-4. Copy the `firebaseConfig` object and paste it into [`frontend/js/firebase-config.js`](file:///C:/Users/varun/.gemini/antigravity/scratch/talent-exchange/frontend/js/firebase-config.js):
-   ```javascript
-   const FIREBASE_CONFIG = {
-     apiKey: "AIzaSy...",
-     authDomain: "talent-exchange-app.firebaseapp.com",
-     projectId: "talent-exchange-app",
-     storageBucket: "talent-exchange-app.appspot.com",
-     messagingSenderId: "1234567890",
-     appId: "1:1234567890:web:abcdef"
-   };
-   ```
+### Step 5: Frontend Web Configuration (Already Connected! ✅)
+Your Firebase Web configuration has already been connected to [`frontend/js/firebase-config.js`](frontend/js/firebase-config.js):
+```javascript
+const firebaseConfig = {
+  apiKey: "AIzaSyD9LKX1GFGJXnNWWZOQZon4VyEx6b0a65Y",
+  authDomain: "talent-exchange-b8827.firebaseapp.com",
+  projectId: "talent-exchange-b8827",
+  storageBucket: "talent-exchange-b8827.firebasestorage.app",
+  messagingSenderId: "166142955644",
+  appId: "1:166142955644:web:b30063851d3c4cac48b9f9",
+  measurementId: "G-JRCG828E5X"
+};
+```
+All frontend HTML pages now load the Firebase Web SDK v10.8.0 and initialize this configuration automatically.
 
 ---
 
