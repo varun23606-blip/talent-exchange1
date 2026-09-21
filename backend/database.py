@@ -4,27 +4,39 @@ from urllib.parse import urlparse
 from werkzeug.security import generate_password_hash
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+_postgres_disabled = False
 
 def is_postgres():
+    global _postgres_disabled
+    if _postgres_disabled:
+        return False
     return bool(DATABASE_URL and (DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://")))
 
 def get_connection():
+    global _postgres_disabled
     if is_postgres():
-        import psycopg2
-        import psycopg2.extras
-        url = DATABASE_URL
-        if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql://", 1)
-        conn = psycopg2.connect(url, sslmode="prefer")
-        return conn
-    else:
-        db_path = os.path.join(os.path.dirname(__file__), "talent_exchange.db")
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON;")
-        return conn
+        try:
+            import psycopg2
+            import psycopg2.extras
+            url = DATABASE_URL
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql://", 1)
+            conn = psycopg2.connect(url, sslmode="prefer", connect_timeout=3)
+            return conn
+        except Exception as err:
+            print(f"[Database Notice]: PostgreSQL connection failed ({err}). Disabling PostgreSQL and using embedded SQLite database.")
+            _postgres_disabled = True
+            init_sqlite_db()
+
+    # SQLite fallback
+    db_path = os.path.join(os.path.dirname(__file__), "talent_exchange.db")
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON;")
+    return conn
 
 def execute_query(query, params=None, fetchone=False, fetchall=False, commit=False):
+    global _postgres_disabled
     params = params or ()
     conn = get_connection()
     is_pg = is_postgres()
@@ -68,187 +80,220 @@ def execute_query(query, params=None, fetchone=False, fetchall=False, commit=Fal
             "lastrowid": lastrowid,
             "rowcount": cursor.rowcount
         }
-    finally:
-        cursor.close()
-        conn.close()
-
-def init_db():
-    conn = get_connection()
-    is_pg = is_postgres()
-    cursor = conn.cursor()
-
-    try:
+    except Exception as e:
         if is_pg:
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100) NOT NULL,
-                email VARCHAR(150) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                department VARCHAR(100) DEFAULT '',
-                semester VARCHAR(50) DEFAULT '',
-                bio TEXT DEFAULT '',
-                profile_image TEXT DEFAULT '',
-                role VARCHAR(20) DEFAULT 'student',
-                certificate_url TEXT DEFAULT '',
-                verification_status VARCHAR(20) DEFAULT 'unverified',
-                is_verified BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
+            print(f"[Database Query Notice]: PostgreSQL query error ({e}). Retrying query with local SQLite database.")
+            _postgres_disabled = True
+            try:
+                cursor.close()
+                conn.close()
+            except Exception:
+                pass
+            init_sqlite_db()
+            return execute_query(query, params, fetchone=fetchone, fetchall=fetchall, commit=commit)
+        raise e
+    finally:
+        try:
+            cursor.close()
+            conn.close()
+        except Exception:
+            pass
 
-            CREATE TABLE IF NOT EXISTS skills (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                skill_name VARCHAR(100) NOT NULL,
-                skill_category VARCHAR(100) DEFAULT 'General',
-                skill_level VARCHAR(50) DEFAULT 'Intermediate',
-                learning_skill VARCHAR(100) DEFAULT '',
-                description TEXT DEFAULT '',
-                video_url TEXT DEFAULT '',
-                certificate_url TEXT DEFAULT '',
-                certificate_title VARCHAR(150) DEFAULT '',
-                verification_status VARCHAR(20) DEFAULT 'unverified',
-                is_verified BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
+def init_sqlite_db():
+    db_path = os.path.join(os.path.dirname(__file__), "talent_exchange.db")
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON;")
+    cursor = conn.cursor()
+    try:
+        cursor.executescript("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            department TEXT DEFAULT '',
+            semester TEXT DEFAULT '',
+            bio TEXT DEFAULT '',
+            profile_image TEXT DEFAULT '',
+            role TEXT DEFAULT 'student',
+            certificate_url TEXT DEFAULT '',
+            verification_status TEXT DEFAULT 'unverified',
+            is_verified INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
 
-            CREATE TABLE IF NOT EXISTS exchange_requests (
-                id SERIAL PRIMARY KEY,
-                sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                offered_skill VARCHAR(100) NOT NULL,
-                requested_skill VARCHAR(100) NOT NULL,
-                status VARCHAR(20) DEFAULT 'Pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
+        CREATE TABLE IF NOT EXISTS skills (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            skill_name TEXT NOT NULL,
+            skill_category TEXT DEFAULT 'General',
+            skill_level TEXT DEFAULT 'Intermediate',
+            learning_skill TEXT DEFAULT '',
+            description TEXT DEFAULT '',
+            video_url TEXT DEFAULT '',
+            certificate_url TEXT DEFAULT '',
+            certificate_title TEXT DEFAULT '',
+            verification_status TEXT DEFAULT 'unverified',
+            is_verified INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
 
-            CREATE TABLE IF NOT EXISTS connections (
-                id SERIAL PRIMARY KEY,
-                user1_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                user2_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT unique_connection UNIQUE (user1_id, user2_id)
-            );
+        CREATE TABLE IF NOT EXISTS exchange_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            offered_skill TEXT NOT NULL,
+            requested_skill TEXT NOT NULL,
+            status TEXT DEFAULT 'Pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+        );
 
-            CREATE TABLE IF NOT EXISTS messages (
-                id SERIAL PRIMARY KEY,
-                sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                message TEXT NOT NULL,
-                is_read BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
+        CREATE TABLE IF NOT EXISTS connections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user1_id INTEGER NOT NULL,
+            user2_id INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user1_id, user2_id),
+            FOREIGN KEY (user1_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE CASCADE
+        );
 
-            CREATE TABLE IF NOT EXISTS notifications (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                type VARCHAR(50) NOT NULL,
-                message TEXT NOT NULL,
-                is_read BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+        );
 
-            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-            CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(sender_id, receiver_id);
-            CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
-            CREATE INDEX IF NOT EXISTS idx_requests_status ON exchange_requests(status);
-            """)
-        else:
-            cursor.executescript("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                department TEXT DEFAULT '',
-                semester TEXT DEFAULT '',
-                bio TEXT DEFAULT '',
-                profile_image TEXT DEFAULT '',
-                role TEXT DEFAULT 'student',
-                certificate_url TEXT DEFAULT '',
-                verification_status TEXT DEFAULT 'unverified',
-                is_verified INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            message TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
 
-            CREATE TABLE IF NOT EXISTS skills (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                skill_name TEXT NOT NULL,
-                skill_category TEXT DEFAULT 'General',
-                skill_level TEXT DEFAULT 'Intermediate',
-                learning_skill TEXT DEFAULT '',
-                description TEXT DEFAULT '',
-                video_url TEXT DEFAULT '',
-                certificate_url TEXT DEFAULT '',
-                certificate_title TEXT DEFAULT '',
-                verification_status TEXT DEFAULT 'unverified',
-                is_verified INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            );
-
-            CREATE TABLE IF NOT EXISTS exchange_requests (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender_id INTEGER NOT NULL,
-                receiver_id INTEGER NOT NULL,
-                offered_skill TEXT NOT NULL,
-                requested_skill TEXT NOT NULL,
-                status TEXT DEFAULT 'Pending',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
-            );
-
-            CREATE TABLE IF NOT EXISTS connections (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user1_id INTEGER NOT NULL,
-                user2_id INTEGER NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user1_id, user2_id),
-                FOREIGN KEY (user1_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE CASCADE
-            );
-
-            CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender_id INTEGER NOT NULL,
-                receiver_id INTEGER NOT NULL,
-                message TEXT NOT NULL,
-                is_read INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
-            );
-
-            CREATE TABLE IF NOT EXISTS notifications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                type TEXT NOT NULL,
-                message TEXT NOT NULL,
-                is_read INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-            CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(sender_id, receiver_id);
-            CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
-            """)
-
+        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+        CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(sender_id, receiver_id);
+        CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+        """)
         conn.commit()
-
-        # Run safe migrations for existing tables if needed
-        migrate_schema(cursor, is_pg)
+        migrate_schema(cursor, False)
         conn.commit()
-
     finally:
         cursor.close()
         conn.close()
 
     seed_demo_data()
+
+def init_db():
+    global _postgres_disabled
+    if is_postgres():
+        try:
+            conn = get_connection()
+            if is_postgres():
+                cursor = conn.cursor()
+                try:
+                    cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL,
+                        email VARCHAR(150) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        department VARCHAR(100) DEFAULT '',
+                        semester VARCHAR(50) DEFAULT '',
+                        bio TEXT DEFAULT '',
+                        profile_image TEXT DEFAULT '',
+                        role VARCHAR(20) DEFAULT 'student',
+                        certificate_url TEXT DEFAULT '',
+                        verification_status VARCHAR(20) DEFAULT 'unverified',
+                        is_verified BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    CREATE TABLE IF NOT EXISTS skills (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        skill_name VARCHAR(100) NOT NULL,
+                        skill_category VARCHAR(100) DEFAULT 'General',
+                        skill_level VARCHAR(50) DEFAULT 'Intermediate',
+                        learning_skill VARCHAR(100) DEFAULT '',
+                        description TEXT DEFAULT '',
+                        video_url TEXT DEFAULT '',
+                        certificate_url TEXT DEFAULT '',
+                        certificate_title VARCHAR(150) DEFAULT '',
+                        verification_status VARCHAR(20) DEFAULT 'unverified',
+                        is_verified BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    CREATE TABLE IF NOT EXISTS exchange_requests (
+                        id SERIAL PRIMARY KEY,
+                        sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        offered_skill VARCHAR(100) NOT NULL,
+                        requested_skill VARCHAR(100) NOT NULL,
+                        status VARCHAR(20) DEFAULT 'Pending',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    CREATE TABLE IF NOT EXISTS connections (
+                        id SERIAL PRIMARY KEY,
+                        user1_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        user2_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT unique_connection UNIQUE (user1_id, user2_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS messages (
+                        id SERIAL PRIMARY KEY,
+                        sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        message TEXT NOT NULL,
+                        is_read BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    CREATE TABLE IF NOT EXISTS notifications (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        type VARCHAR(50) NOT NULL,
+                        message TEXT NOT NULL,
+                        is_read BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+                    CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(sender_id, receiver_id);
+                    CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+                    CREATE INDEX IF NOT EXISTS idx_requests_status ON exchange_requests(status);
+                    """)
+                    conn.commit()
+                    migrate_schema(cursor, True)
+                    conn.commit()
+                finally:
+                    cursor.close()
+                    conn.close()
+
+                seed_demo_data()
+                return
+        except Exception as e:
+            print(f"[Database Notice]: Failed to connect/initialize PostgreSQL ({e}). Using SQLite fallback.")
+            _postgres_disabled = True
+
+    init_sqlite_db()
 
 def migrate_schema(cursor, is_pg):
     # Ensure new columns exist on users

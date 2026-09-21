@@ -144,127 +144,135 @@ def upload_file():
 
 @app.route("/api/register", methods=["POST"])
 def register():
-    data = request.get_json() or {}
-    name = data.get("name", "").strip()
-    email = data.get("email", "").strip().lower()
-    password = data.get("password", "")
-    department = data.get("department", "").strip()
-    semester = data.get("semester", "").strip()
-    teach_skill = data.get("teach_skill", "").strip()
-    learn_skill = data.get("learn_skill", "").strip()
-    bio = data.get("bio", "").strip()
-    profile_image = data.get("profile_image", "").strip()
-    certificate_url = data.get("certificate_url", "").strip()
-    certificate_title = data.get("certificate_title", "").strip()
-    video_url = data.get("video_url", "").strip()
+    try:
+        data = request.get_json() or {}
+        name = data.get("name", "").strip()
+        email = data.get("email", "").strip().lower()
+        password = data.get("password", "")
+        department = data.get("department", "").strip()
+        semester = data.get("semester", "").strip()
+        teach_skill = data.get("teach_skill", "").strip()
+        learn_skill = data.get("learn_skill", "").strip()
+        bio = data.get("bio", "").strip()
+        profile_image = data.get("profile_image", "").strip()
+        certificate_url = data.get("certificate_url", "").strip()
+        certificate_title = data.get("certificate_title", "").strip()
+        video_url = data.get("video_url", "").strip()
 
-    if not name or not email or not password:
-        return jsonify({"success": False, "message": "Name, email, and password are required"}), 400
+        if not name or not email or not password:
+            return jsonify({"success": False, "message": "Name, email, and password are required"}), 400
 
-    if not re.match(EMAIL_REGEX, email):
-        return jsonify({"success": False, "message": "Please provide a valid email address"}), 400
+        if not re.match(EMAIL_REGEX, email):
+            return jsonify({"success": False, "message": "Please provide a valid email address"}), 400
 
-    if len(password) < 6:
-        return jsonify({"success": False, "message": "Password must be at least 6 characters"}), 400
+        if len(password) < 6:
+            return jsonify({"success": False, "message": "Password must be at least 6 characters"}), 400
 
-    # Duplicate check
-    existing = firebase_db.get_user_by_email(email)
-    if existing:
-        return jsonify({"success": False, "message": "An account with this email already exists"}), 400
+        # Duplicate check
+        existing = firebase_db.get_user_by_email(email)
+        if existing:
+            return jsonify({"success": False, "message": "An account with this email already exists"}), 400
 
-    password_hash = generate_password_hash(password)
-    if not profile_image:
-        profile_image = "assets/avatar-default.svg"
+        password_hash = generate_password_hash(password)
+        if not profile_image:
+            profile_image = "assets/avatar-default.svg"
 
-    verification_status = "pending" if certificate_url else "unverified"
-    is_verified = 0
+        verification_status = "pending" if certificate_url else "unverified"
+        is_verified = 0
 
-    new_user = firebase_db.create_user(
-        name=name,
-        email=email,
-        password_hash=password_hash,
-        department=department,
-        semester=semester,
-        bio=bio,
-        profile_image=profile_image,
-        role="student",
-        certificate_url=certificate_url,
-        verification_status=verification_status,
-        is_verified=is_verified
-    )
-    user_id = new_user["id"]
-
-    # Save initial skill
-    if teach_skill or learn_skill or video_url or certificate_url:
-        firebase_db.create_skill(
-            user_id=user_id,
-            skill_name=teach_skill or "General Knowledge",
-            skill_category="General",
-            skill_level="Intermediate",
-            learning_skill=learn_skill,
-            description=f"Can teach {teach_skill}. Wants to learn {learn_skill}.",
-            video_url=video_url,
+        new_user = firebase_db.create_user(
+            name=name,
+            email=email,
+            password_hash=password_hash,
+            department=department,
+            semester=semester,
+            bio=bio,
+            profile_image=profile_image,
+            role="student",
             certificate_url=certificate_url,
-            certificate_title=certificate_title,
             verification_status=verification_status,
             is_verified=is_verified
         )
+        user_id = new_user["id"]
 
-    sanitized = sanitize_user(new_user)
-    sanitized["teach_skill"] = teach_skill
-    sanitized["learn_skill"] = learn_skill
-    sanitized["video_url"] = video_url
-    sanitized["certificate_url"] = certificate_url
-    sanitized["certificate_title"] = certificate_title
+        # Save initial skill
+        if teach_skill or learn_skill or video_url or certificate_url:
+            firebase_db.create_skill(
+                user_id=user_id,
+                skill_name=teach_skill or "General Knowledge",
+                skill_category="General",
+                skill_level="Intermediate",
+                learning_skill=learn_skill,
+                description=f"Can teach {teach_skill}. Wants to learn {learn_skill}.",
+                video_url=video_url,
+                certificate_url=certificate_url,
+                certificate_title=certificate_title,
+                verification_status=verification_status,
+                is_verified=is_verified
+            )
 
-    return jsonify({
-        "success": True,
-        "message": "Account created successfully! Welcome to Talent Exchange.",
-        "data": sanitized
-    }), 201
+        sanitized = sanitize_user(new_user)
+        sanitized["teach_skill"] = teach_skill
+        sanitized["learn_skill"] = learn_skill
+        sanitized["video_url"] = video_url
+        sanitized["certificate_url"] = certificate_url
+        sanitized["certificate_title"] = certificate_title
+
+        return jsonify({
+            "success": True,
+            "message": "Account created successfully! Welcome to Talent Exchange.",
+            "data": sanitized
+        }), 201
+    except Exception as err:
+        print(f"[Register Exception]: {err}")
+        return jsonify({"success": False, "message": f"Unable to register: {str(err)}"}), 500
 
 @app.route("/api/login", methods=["POST"])
 def login():
-    data = request.get_json() or {}
-    email = data.get("email", "").strip().lower()
-    password = data.get("password", "")
+    try:
+        data = request.get_json() or {}
+        email = data.get("email", "").strip().lower()
+        password = data.get("password", "")
 
-    if not email or not password:
-        return jsonify({"success": False, "message": "Email and password are required"}), 400
+        if not email or not password:
+            return jsonify({"success": False, "message": "Email and password are required"}), 400
 
-    user_data = firebase_db.get_user_by_email(email)
-    if not user_data:
-        return jsonify({"success": False, "message": "Invalid email or password"}), 401
+        user_data = firebase_db.get_user_by_email(email)
+        if not user_data:
+            return jsonify({"success": False, "message": "Invalid email or password"}), 401
 
-    if not check_password_hash(user_data["password_hash"], password):
-        return jsonify({"success": False, "message": "Invalid email or password"}), 401
+        if not check_password_hash(user_data["password_hash"], password):
+            return jsonify({"success": False, "message": "Invalid email or password"}), 401
 
-    user_id = user_data["id"]
-    skills = firebase_db.get_skills_by_user(user_id)
-    sanitized = sanitize_user(user_data)
+        user_id = user_data["id"]
+        skills = firebase_db.get_skills_by_user(user_id)
+        sanitized = sanitize_user(user_data)
 
-    if skills:
-        sk = skills[0]
-        sanitized["teach_skill"] = sk.get("skill_name", "")
-        sanitized["learn_skill"] = sk.get("learning_skill", "")
-        sanitized["skill_level"] = sk.get("skill_level", "")
-        sanitized["skill_category"] = sk.get("skill_category", "")
-        sanitized["video_url"] = sk.get("video_url") or ""
-        sanitized["certificate_url"] = sk.get("certificate_url") or sanitized.get("certificate_url", "")
-        sanitized["certificate_title"] = sk.get("certificate_title") or ""
-        sanitized["verification_status"] = sk.get("verification_status") or sanitized.get("verification_status", "unverified")
-        sanitized["is_verified"] = bool(sk.get("is_verified") or sanitized.get("is_verified"))
-    else:
-        sanitized["teach_skill"] = ""
-        sanitized["learn_skill"] = ""
-        sanitized["video_url"] = ""
-        sanitized["certificate_title"] = ""
+        if skills:
+            sk = skills[0]
+            sanitized["teach_skill"] = sk.get("skill_name", "")
+            sanitized["learn_skill"] = sk.get("learning_skill", "")
+            sanitized["skill_level"] = sk.get("skill_level", "")
+            sanitized["skill_category"] = sk.get("skill_category", "")
+            sanitized["video_url"] = sk.get("video_url") or ""
+            sanitized["certificate_url"] = sk.get("certificate_url") or sanitized.get("certificate_url", "")
+            sanitized["certificate_title"] = sk.get("certificate_title") or ""
+            sanitized["verification_status"] = sk.get("verification_status") or sanitized.get("verification_status", "unverified")
+            sanitized["is_verified"] = bool(sk.get("is_verified") or sanitized.get("is_verified"))
+        else:
+            sanitized["teach_skill"] = ""
+            sanitized["learn_skill"] = ""
+            sanitized["video_url"] = ""
+            sanitized["certificate_title"] = ""
 
-    return jsonify({
-        "success": True,
-        "message": "Login successful! Welcome back.",
-        "data": sanitized
-    }), 200
+        return jsonify({
+            "success": True,
+            "message": "Login successful! Welcome back.",
+            "data": sanitized
+        }), 200
+    except Exception as err:
+        print(f"[Login Exception]: {err}")
+        return jsonify({"success": False, "message": f"Unable to process login: {str(err)}"}), 500
 
 @app.route("/api/logout", methods=["POST"])
 def logout():
