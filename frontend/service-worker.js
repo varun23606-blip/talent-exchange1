@@ -1,4 +1,4 @@
-const CACHE_NAME = 'talent-exchange-v1';
+const CACHE_NAME = 'talent-exchange-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -17,8 +17,11 @@ const STATIC_ASSETS = [
   './css/auth.css',
   './css/dashboard.css',
   './css/chat.css',
-  './js/api.js',
   './js/firebase-config.js',
+  './js/firebase-auth.js',
+  './js/firebase-db.js',
+  './js/firebase-storage.js',
+  './js/api.js',
   './js/auth.js',
   './js/dashboard.js',
   './js/profile.js',
@@ -56,12 +59,20 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Cache-first for static assets, network-only for all API requests
+// Cache-first for local static shell, LIVE NETWORK ONLY for all Firebase, Firestore, Storage, and Auth requests
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // NEVER cache API calls - always live network
-  if (url.pathname.includes('/api/')) {
+  // NEVER cache Firebase APIs, Firestore websockets, Auth tokens, or Storage uploads
+  const isFirebaseRequest = 
+    url.hostname.includes('firebase') ||
+    url.hostname.includes('firestore.googleapis.com') ||
+    url.hostname.includes('identitytoolkit.googleapis.com') ||
+    url.hostname.includes('firebasestorage.googleapis.com') ||
+    url.hostname.includes('storage.googleapis.com') ||
+    url.pathname.includes('/api/');
+
+  if (isFirebaseRequest) {
     event.respondWith(fetch(event.request));
     return;
   }
@@ -81,7 +92,6 @@ self.addEventListener('fetch', (event) => {
         });
         return networkResponse;
       }).catch(() => {
-        // Fallback if offline
         return caches.match('./index.html');
       });
     })

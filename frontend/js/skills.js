@@ -1,5 +1,6 @@
 /* ==========================================================================
-   TALENT EXCHANGE - SKILLS LOGIC (FIND SKILLS & OFFER SKILL)
+   TALENT EXCHANGE - SKILLS CONTROLLER (FIND SKILLS & OFFER SKILL)
+   Powered by Cloud Firestore & Firebase Storage
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -42,7 +43,7 @@ function initFindSkills(currentUser) {
     if (input) {
       input.addEventListener("input", () => {
         clearTimeout(debounceTimeout);
-        debounceTimeout = setTimeout(loadUsers, 300);
+        debounceTimeout = setTimeout(loadUsers, 250);
       });
       input.addEventListener("change", () => {
         clearTimeout(debounceTimeout);
@@ -65,8 +66,9 @@ function initFindSkills(currentUser) {
     const sem = semSelect ? semSelect.value.trim() : "";
     const onlyVerified = verifiedCheckbox ? verifiedCheckbox.checked : false;
 
+    const currentUid = currentUser.id || currentUser.uid;
     const params = new URLSearchParams();
-    params.append("exclude_user_id", currentUser.id);
+    params.append("exclude_user_id", currentUid);
     if (q) params.append("q", q);
     if (skill) params.append("skill", skill);
     if (dept) params.append("department", dept);
@@ -92,21 +94,21 @@ function initFindSkills(currentUser) {
         const isVerified = Boolean(u.is_verified);
         const hasVideo = Boolean(u.video_url);
         const hasCert = Boolean(u.certificate_url);
+        const uId = u.id || u.uid;
 
         return `
           <div class="user-card">
             <div class="user-card-header">
               <img src="${u.profile_image || 'assets/avatar-default.svg'}" class="user-card-avatar" alt="${u.name}" onerror="this.src='assets/avatar-default.svg'">
               <div class="user-card-meta">
-                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                  <h3 style="margin-bottom: 0;">${u.name}</h3>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <h3 style="margin-bottom:0;">${u.name}</h3>
                   ${isVerified ? '<span class="badge badge-verified" title="Certified & Verified Mentor">🛡️ Verified Mentor</span>' : ''}
                 </div>
-                <div class="user-card-dept">${u.department || 'Department not specified'}</div>
+                <div class="user-card-dept">${u.department || 'Student'}</div>
                 <div class="user-card-sem">${u.semester || ''}</div>
               </div>
             </div>
-
             <div class="user-card-skills">
               <div class="skill-row">
                 <span class="skill-label">Teaches:</span>
@@ -114,335 +116,259 @@ function initFindSkills(currentUser) {
               </div>
               <div class="skill-row">
                 <span class="skill-label">Wants:</span>
-                <span class="badge badge-emerald">${u.learn_skill || 'Open to learn'}</span>
+                <span class="badge badge-emerald">${u.learn_skill || 'Any skill'}</span>
               </div>
             </div>
 
-            <!-- Teaching Video & Certificate Quick Chips -->
             ${(hasVideo || hasCert) ? `
               <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                 ${hasVideo ? `
-                  <button class="btn btn-secondary btn-sm btn-open-video" data-video-url="${u.video_url}" data-name="${u.name}" style="padding: 4px 10px; font-size: 0.8rem;">
+                  <button class="btn btn-secondary btn-sm btn-open-video" data-video-url="${u.video_url}" data-name="${u.name}" style="padding: 4px 10px; font-size: 0.78rem;">
                     ▶ Watch Teaching Video
                   </button>
                 ` : ''}
                 ${hasCert ? `
-                  <button class="btn btn-secondary btn-sm btn-open-cert" data-cert-url="${u.certificate_url}" data-cert-title="${u.certificate_title || 'Certificate of Proficiency'}" data-name="${u.name}" style="padding: 4px 10px; font-size: 0.8rem;">
+                  <button class="btn btn-secondary btn-sm btn-open-cert" data-cert-url="${u.certificate_url}" data-cert-title="${u.certificate_title || 'Certificate'}" data-name="${u.name}" style="padding: 4px 10px; font-size: 0.78rem;">
                     📜 View Certificate
                   </button>
                 ` : ''}
               </div>
             ` : ''}
 
-            <p class="user-card-bio">${u.bio || 'Excited to share skills and collaborate with others.'}</p>
-
+            <p class="user-card-bio">${u.bio || 'Available for skill exchange.'}</p>
             <div class="user-card-actions">
-              <button class="btn btn-secondary btn-sm btn-view-profile" data-user='${JSON.stringify(u)}'>
-                View Profile
-              </button>
-              <button class="btn btn-primary btn-sm btn-request-exchange"
-                data-user-id="${u.id}" 
+              <button class="btn btn-primary btn-sm btn-request-exchange" 
+                data-user-id="${uId}" 
                 data-user-name="${u.name}" 
-                data-teach-skill="${u.teach_skill || ''}">
-                Request Exchange
+                data-teach-skill="${u.teach_skill || ''}" 
+                data-learn-skill="${u.learn_skill || ''}">
+                🤝 Request Exchange
               </button>
             </div>
           </div>
         `;
       }).join("");
 
-      // Bind Video Modal Watchers
+      // Bind Modal Launchers
       resultsContainer.querySelectorAll(".btn-open-video").forEach(b => {
-        b.addEventListener("click", () => {
-          const videoUrl = b.dataset.videoUrl;
-          const teacherName = b.dataset.name;
-          openVideoPlayerModal(videoUrl, teacherName);
-        });
+        b.addEventListener("click", () => openVideoPlayerModal(b.dataset.videoUrl, b.dataset.name));
       });
-
-      // Bind Certificate Modal Viewers
       resultsContainer.querySelectorAll(".btn-open-cert").forEach(b => {
-        b.addEventListener("click", () => {
-          const certUrl = b.dataset.certUrl;
-          const certTitle = b.dataset.certTitle;
-          const studentName = b.dataset.name;
-          openCertificateModal(certUrl, certTitle, studentName);
-        });
+        b.addEventListener("click", () => openCertificateModal(b.dataset.certUrl, b.dataset.certTitle, b.dataset.name));
       });
 
       // Bind Request Exchange Buttons
-      resultsContainer.querySelectorAll(".btn-request-exchange").forEach(b => {
-        b.addEventListener("click", () => {
-          document.getElementById("modal-receiver-id").value = b.dataset.userId;
-          document.getElementById("modal-receiver-name").textContent = b.dataset.userName;
-          document.getElementById("modal-offered-skill").value = currentUser.teach_skill || "";
-          document.getElementById("modal-requested-skill").value = b.dataset.teachSkill || "";
-          openModal("exchange-modal");
-        });
-      });
-
-      // Bind Profile View Buttons
-      resultsContainer.querySelectorAll(".btn-view-profile").forEach(b => {
-        b.addEventListener("click", () => {
-          const u = JSON.parse(b.dataset.user);
-          document.getElementById("modal-profile-img").src = u.profile_image || "assets/avatar-default.svg";
-          document.getElementById("modal-profile-name").textContent = u.name;
-          document.getElementById("modal-profile-meta").textContent = `${u.department || ''} • ${u.semester || ''}`;
-          document.getElementById("modal-profile-teach").textContent = u.teach_skill || "General";
-          document.getElementById("modal-profile-learn").textContent = u.learn_skill || "Open";
-          document.getElementById("modal-profile-bio").textContent = u.bio || "No biography provided yet.";
-
-          const certPill = document.getElementById("modal-profile-cert-pill");
-          if (certPill) {
-            if (u.is_verified) {
-              certPill.innerHTML = `<span class="badge badge-verified">🛡️ Certified Mentor: ${u.certificate_title || 'Verified Skill'}</span>`;
-              certPill.style.display = "block";
-            } else {
-              certPill.style.display = "none";
-            }
-          }
-
-          openModal("profile-modal");
-        });
-      });
-
+      bindExchangeButtons(currentUser);
     } catch (err) {
-      resultsContainer.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><div class="empty-desc">${err.message}</div></div>`;
+      resultsContainer.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><div class="empty-desc">Error loading skills: ${err.message}</div></div>`;
     }
   }
 
-  // Bind Exchange Request Submission Modal
-  const exchangeForm = document.getElementById("exchange-form");
-  if (exchangeForm) {
-    exchangeForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const receiverId = document.getElementById("modal-receiver-id").value;
-      const offeredSkill = document.getElementById("modal-offered-skill").value.trim();
-      const requestedSkill = document.getElementById("modal-requested-skill").value.trim();
-      const submitBtn = exchangeForm.querySelector("button[type='submit']");
+  // Setup Exchange Modal
+  setupExchangeModal(currentUser);
+}
 
-      if (!offeredSkill || !requestedSkill) {
-        showToast("Please specify both offered and requested skills.", "error");
-        return;
-      }
+// ==========================================================================
+// 2. OFFER SKILL
+// ==========================================================================
+function initOfferSkill(currentUser) {
+  const form = document.getElementById("offer-skill-form");
+  if (!form) return;
 
-      setLoading(submitBtn, true);
+  // Pre-fill existing data if available
+  const skillNameInput = document.getElementById("skill-name");
+  const learnSkillInput = document.getElementById("learning-skill");
+  const skillDescInput = document.getElementById("skill-desc");
+  const videoUrlInput = document.getElementById("video-url");
+  const certUrlInput = document.getElementById("cert-url");
+  const certTitleInput = document.getElementById("cert-title");
 
-      try {
-        const payload = {
-          sender_id: currentUser.id,
-          receiver_id: parseInt(receiverId, 10),
-          offered_skill: offeredSkill,
-          requested_skill: requestedSkill
-        };
+  if (skillNameInput && currentUser.teach_skill) skillNameInput.value = currentUser.teach_skill;
+  if (learnSkillInput && currentUser.learn_skill) learnSkillInput.value = currentUser.learn_skill;
+  if (skillDescInput && currentUser.bio) skillDescInput.value = currentUser.bio;
+  if (videoUrlInput && currentUser.video_url) videoUrlInput.value = currentUser.video_url;
+  if (certUrlInput && currentUser.certificate_url) certUrlInput.value = currentUser.certificate_url;
+  if (certTitleInput && currentUser.certificate_title) certTitleInput.value = currentUser.certificate_title;
 
-        const res = await api.post("/api/requests", payload);
-        if (res.success) {
-          showToast("Exchange request sent successfully!", "success");
-          closeModal("exchange-modal");
-          setLoading(submitBtn, false);
-        } else {
-          showToast(res.message || "Failed to send request", "error");
-          setLoading(submitBtn, false);
+  // Video file upload preview
+  const videoInput = document.getElementById("video-file-input");
+  const videoPreviewWrapper = document.getElementById("video-preview-wrapper");
+  const videoPreviewPlayer = document.getElementById("video-preview-player");
+  const videoNamePreview = document.getElementById("video-filename-preview");
+
+  if (videoInput) {
+    videoInput.addEventListener("change", () => {
+      if (videoInput.files && videoInput.files[0]) {
+        const file = videoInput.files[0];
+        if (videoNamePreview) {
+          videoNamePreview.textContent = `✓ Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+          videoNamePreview.style.display = "block";
         }
-      } catch (err) {
-        showToast(err.message, "error");
-        setLoading(submitBtn, false);
+        if (videoPreviewWrapper && videoPreviewPlayer) {
+          videoPreviewPlayer.src = URL.createObjectURL(file);
+          videoPreviewWrapper.style.display = "block";
+        }
       }
     });
   }
 
-  // Bind Close Buttons for Modals
-  document.querySelectorAll(".modal-close, .modal-cancel").forEach(btn => {
-    btn.addEventListener("click", () => {
-      closeModal("exchange-modal");
-      closeModal("profile-modal");
-      closeModal("video-player-modal");
-      closeModal("cert-viewer-modal");
+  // Certificate file upload preview
+  const certInput = document.getElementById("cert-file-input");
+  const certPreviewWrapper = document.getElementById("cert-preview-wrapper");
+  const certPreviewImg = document.getElementById("cert-preview-img");
+  const certNamePreview = document.getElementById("cert-filename-preview");
 
-      const player = document.getElementById("modal-video-element");
-      if (player) {
-        player.pause();
-        player.src = "";
+  if (certInput) {
+    certInput.addEventListener("change", () => {
+      if (certInput.files && certInput.files[0]) {
+        const file = certInput.files[0];
+        if (certNamePreview) {
+          certNamePreview.textContent = `✓ Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+          certNamePreview.style.display = "block";
+        }
+        if (certPreviewWrapper && certPreviewImg && file.type.startsWith("image/")) {
+          certPreviewImg.src = URL.createObjectURL(file);
+          certPreviewWrapper.style.display = "block";
+        }
       }
+    });
+  }
+
+  // Handle Form Submission
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitBtn = form.querySelector("button[type='submit']");
+    setLoading(submitBtn, true);
+
+    const skillName = document.getElementById("skill-name").value.trim();
+    const skillCategory = document.getElementById("skill-category") ? document.getElementById("skill-category").value : "General";
+    const skillLevel = document.getElementById("skill-level") ? document.getElementById("skill-level").value : "Intermediate";
+    const learningSkill = document.getElementById("learning-skill").value.trim();
+    const skillDesc = document.getElementById("skill-desc") ? document.getElementById("skill-desc").value.trim() : "";
+    const certTitle = document.getElementById("cert-title") ? document.getElementById("cert-title").value.trim() : "";
+
+    let videoUrl = document.getElementById("video-url") ? document.getElementById("video-url").value.trim() : "";
+    let certUrl = document.getElementById("cert-url") ? document.getElementById("cert-url").value.trim() : "";
+
+    const uid = currentUser.id || currentUser.uid;
+
+    try {
+      // 1. Upload Video to Firebase Storage if selected
+      if (videoInput && videoInput.files && videoInput.files[0]) {
+        showToast("Uploading teaching demonstration video to Firebase Storage...", "info");
+        const vRes = await api.upload(videoInput.files[0], "video");
+        if (vRes && vRes.url) {
+          videoUrl = vRes.url;
+        }
+      }
+
+      // 2. Upload Certificate to Firebase Storage if selected
+      if (certInput && certInput.files && certInput.files[0]) {
+        showToast("Uploading certificate credential to Firebase Storage...", "info");
+        const cRes = await api.upload(certInput.files[0], "certificate");
+        if (cRes && cRes.url) {
+          certUrl = cRes.url;
+        }
+      }
+
+      // 3. Save skill document to Firestore
+      const skillPayload = {
+        user_id: uid,
+        skill_name: skillName,
+        skill_category: skillCategory,
+        skill_level: skillLevel,
+        learning_skill: learningSkill,
+        description: skillDesc,
+        teaching_video: videoUrl,
+        certificate: certUrl,
+        certificate_title: certTitle,
+        verification_status: certUrl ? "pending" : (currentUser.verification_status || "unverified"),
+        is_verified: Boolean(currentUser.is_verified)
+      };
+
+      await api.post("/api/skills", skillPayload);
+
+      // 4. Update user profile in Firestore
+      const userUpdates = {
+        teach_skill: skillName,
+        learn_skill: learningSkill,
+        bio: skillDesc || currentUser.bio,
+        video_url: videoUrl,
+        certificate_url: certUrl,
+        certificate_title: certTitle
+      };
+      if (certUrl && !currentUser.is_verified) {
+        userUpdates.verification_status = "pending";
+      }
+
+      const updatedUser = await api.put(`/api/users/${uid}`, userUpdates);
+      if (updatedUser && updatedUser.data) {
+        setCurrentUser(updatedUser.data);
+      }
+
+      // If a new certificate was submitted, also record in certificates collection for admin review
+      if (certUrl && !currentUser.is_verified) {
+        await api.post("/api/certificates/submit", {
+          user_id: uid,
+          certificate_title: certTitle || "Skill Certificate",
+          file_url: certUrl,
+          file_name: certInput && certInput.files && certInput.files[0] ? certInput.files[0].name : "certificate"
+        });
+      }
+
+      showToast("Skill and credentials saved successfully to Firebase! 🚀", "success");
+      setTimeout(() => {
+        window.location.href = "dashboard.html";
+      }, 700);
+    } catch (err) {
+      showToast(err.message || "Failed to save skill.", "error");
+      setLoading(submitBtn, false);
+    }
+  });
+}
+
+function bindExchangeButtons(currentUser) {
+  document.querySelectorAll(".btn-request-exchange").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const targetUserId = btn.dataset.userId;
+      const targetUserName = btn.dataset.userName;
+      const targetTeachSkill = btn.dataset.teachSkill;
+
+      const modal = document.getElementById("exchange-modal");
+      if (!modal) return;
+
+      document.getElementById("modal-receiver-id").value = targetUserId;
+      document.getElementById("modal-receiver-name").textContent = targetUserName;
+      
+      const offerInput = document.getElementById("modal-offered-skill");
+      const requestInput = document.getElementById("modal-requested-skill");
+
+      if (offerInput) offerInput.value = currentUser.teach_skill || "";
+      if (requestInput) requestInput.value = targetTeachSkill || "";
+
+      openModal("exchange-modal");
     });
   });
 }
 
-// ==========================================================================
-// 2. OFFER SKILL (WITH VIDEO & CERTIFICATE UPLOAD)
-// ==========================================================================
-async function initOfferSkill(currentUser) {
-  const form = document.getElementById("offer-skill-form");
-  if (!form) return;
+function setupExchangeModal(currentUser) {
+  const form = document.getElementById("exchange-form");
+  const modal = document.getElementById("exchange-modal");
+  if (!form || !modal) return;
 
-  const videoUrlInput = document.getElementById("video-url");
-  const videoFileInput = document.getElementById("video-file-input");
-  const videoFilenameEl = document.getElementById("video-filename-preview");
-  const videoPreviewWrapper = document.getElementById("video-preview-wrapper");
-  const videoPreviewPlayer = document.getElementById("video-preview-player");
-
-  const certTitleInput = document.getElementById("cert-title");
-  const certUrlInput = document.getElementById("cert-url");
-  const certFileInput = document.getElementById("cert-file-input");
-  const certFilenameEl = document.getElementById("cert-filename-preview");
-  const certPreviewWrapper = document.getElementById("cert-preview-wrapper");
-  const certPreviewImg = document.getElementById("cert-preview-img");
-  const certStatusBadge = document.getElementById("cert-status-badge");
-
-  // Pre-fill existing skill
-  try {
-    const res = await api.get(`/api/skills/${currentUser.id}`);
-    if (res && res.data && res.data.length > 0) {
-      const skill = res.data[0];
-      if (document.getElementById("skill-name")) document.getElementById("skill-name").value = skill.skill_name || "";
-      if (document.getElementById("skill-category")) document.getElementById("skill-category").value = skill.skill_category || "Programming & Tech";
-      if (document.getElementById("skill-level")) document.getElementById("skill-level").value = skill.skill_level || "Intermediate";
-      if (document.getElementById("learning-skill")) document.getElementById("learning-skill").value = skill.learning_skill || "";
-      if (document.getElementById("skill-desc")) document.getElementById("skill-desc").value = skill.description || "";
-
-      if (videoUrlInput && skill.video_url) {
-        videoUrlInput.value = skill.video_url;
-        showVideoPreview(skill.video_url);
-      }
-
-      if (certTitleInput && skill.certificate_title) {
-        certTitleInput.value = skill.certificate_title;
-      }
-
-      if (certUrlInput && skill.certificate_url) {
-        certUrlInput.value = skill.certificate_url;
-        showCertPreview(skill.certificate_url);
-      }
-
-      updateCertStatusBadge(skill.verification_status, skill.is_verified);
-    }
-  } catch (err) {
-    console.error("Could not fetch skill:", err);
-  }
-
-  // Video URL input change
-  if (videoUrlInput) {
-    videoUrlInput.addEventListener("input", () => {
-      const url = videoUrlInput.value.trim();
-      if (url) showVideoPreview(url);
-      else hideVideoPreview();
-    });
-  }
-
-  // Video File Upload
-  if (videoFileInput) {
-    videoFileInput.addEventListener("change", async () => {
-      if (!videoFileInput.files || videoFileInput.files.length === 0) return;
-      const file = videoFileInput.files[0];
-      videoFilenameEl.textContent = `Uploading ${file.name}...`;
-      videoFilenameEl.style.display = "block";
-
-      try {
-        const res = await api.upload(file, "video");
-        if (res && res.success && res.url) {
-          videoUrlInput.value = res.url;
-          videoFilenameEl.textContent = `✅ Uploaded: ${file.name}`;
-          showVideoPreview(res.url);
-          showToast("Teaching video uploaded successfully!", "success");
-        }
-      } catch (e) {
-        videoFilenameEl.textContent = `❌ Upload failed: ${e.message}`;
-        showToast(e.message, "error");
-      }
-    });
-  }
-
-  // Certificate URL input change
-  if (certUrlInput) {
-    certUrlInput.addEventListener("input", () => {
-      const url = certUrlInput.value.trim();
-      if (url) showCertPreview(url);
-      else hideCertPreview();
-    });
-  }
-
-  // Certificate File Upload
-  if (certFileInput) {
-    certFileInput.addEventListener("change", async () => {
-      if (!certFileInput.files || certFileInput.files.length === 0) return;
-      const file = certFileInput.files[0];
-      certFilenameEl.textContent = `Uploading ${file.name}...`;
-      certFilenameEl.style.display = "block";
-
-      try {
-        const res = await api.upload(file, "certificate");
-        if (res && res.success && res.url) {
-          certUrlInput.value = res.url;
-          certFilenameEl.textContent = `✅ Uploaded: ${file.name}`;
-          showCertPreview(res.url);
-          showToast("Certificate uploaded! Submitted for verification.", "success");
-          updateCertStatusBadge("pending", false);
-        }
-      } catch (e) {
-        certFilenameEl.textContent = `❌ Upload failed: ${e.message}`;
-        showToast(e.message, "error");
-      }
-    });
-  }
-
-  function showVideoPreview(url) {
-    if (videoPreviewWrapper && videoPreviewPlayer) {
-      videoPreviewPlayer.src = url;
-      videoPreviewWrapper.style.display = "block";
-    }
-  }
-
-  function hideVideoPreview() {
-    if (videoPreviewWrapper && videoPreviewPlayer) {
-      videoPreviewPlayer.pause();
-      videoPreviewPlayer.src = "";
-      videoPreviewWrapper.style.display = "none";
-    }
-  }
-
-  function showCertPreview(url) {
-    if (certPreviewWrapper && certPreviewImg) {
-      certPreviewImg.src = url;
-      certPreviewWrapper.style.display = "block";
-    }
-  }
-
-  function hideCertPreview() {
-    if (certPreviewWrapper) {
-      certPreviewWrapper.style.display = "none";
-    }
-  }
-
-  function updateCertStatusBadge(status, isVerified) {
-    if (!certStatusBadge) return;
-    if (isVerified || status === "verified") {
-      certStatusBadge.className = "badge badge-verified";
-      certStatusBadge.textContent = "Verified Mentor 🛡️";
-    } else if (status === "pending") {
-      certStatusBadge.className = "badge badge-pending";
-      certStatusBadge.textContent = "Pending Review ⏳";
-    } else {
-      certStatusBadge.className = "badge badge-amber";
-      certStatusBadge.textContent = "Unverified";
-    }
-  }
+  modal.querySelectorAll(".modal-close, .modal-cancel").forEach(b => {
+    b.addEventListener("click", () => closeModal("exchange-modal"));
+  });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const receiverId = document.getElementById("modal-receiver-id").value;
+    const offeredSkill = document.getElementById("modal-offered-skill").value.trim();
+    const requestedSkill = document.getElementById("modal-requested-skill").value.trim();
     const submitBtn = form.querySelector("button[type='submit']");
 
-    const skillName = document.getElementById("skill-name").value.trim();
-    const skillCategory = document.getElementById("skill-category").value;
-    const skillLevel = document.getElementById("skill-level").value;
-    const learningSkill = document.getElementById("learning-skill").value.trim();
-    const description = document.getElementById("skill-desc").value.trim();
-    const videoUrl = videoUrlInput ? videoUrlInput.value.trim() : "";
-    const certUrl = certUrlInput ? certUrlInput.value.trim() : "";
-    const certTitle = certTitleInput ? certTitleInput.value.trim() : "";
-
-    if (!skillName) {
-      showToast("Skill Name is required.", "error");
+    if (!offeredSkill || !requestedSkill) {
+      showToast("Please specify both offered and requested skills", "error");
       return;
     }
 
@@ -450,37 +376,20 @@ async function initOfferSkill(currentUser) {
 
     try {
       const payload = {
-        user_id: currentUser.id,
-        skill_name: skillName,
-        skill_category: skillCategory,
-        skill_level: skillLevel,
-        learning_skill: learningSkill,
-        description: description,
-        video_url: videoUrl,
-        certificate_url: certUrl,
-        certificate_title: certTitle
+        sender_id: currentUser.id || currentUser.uid,
+        receiver_id: receiverId,
+        offered_skill: offeredSkill,
+        requested_skill: requestedSkill
       };
 
-      const res = await api.post("/api/skills", payload);
+      const res = await api.post("/api/requests", payload);
       if (res.success) {
-        currentUser.teach_skill = skillName;
-        currentUser.learn_skill = learningSkill;
-        currentUser.video_url = videoUrl;
-        currentUser.certificate_url = certUrl;
-        currentUser.certificate_title = certTitle;
-        if (certUrl) {
-          currentUser.verification_status = "pending";
-        }
-        setCurrentUser(currentUser);
-
-        showToast("Skill details, video & certificate saved to PostgreSQL!", "success");
-        setTimeout(() => {
-          window.location.href = "dashboard.html";
-        }, 800);
+        showToast("Exchange proposal sent successfully! 🎉", "success");
+        closeModal("exchange-modal");
       } else {
-        showToast(res.message || "Failed to update skill", "error");
-        setLoading(submitBtn, false);
+        showToast(res.message || "Failed to send request", "error");
       }
+      setLoading(submitBtn, false);
     } catch (err) {
       showToast(err.message, "error");
       setLoading(submitBtn, false);

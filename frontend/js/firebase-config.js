@@ -3,11 +3,10 @@
  * TALENT EXCHANGE - FIREBASE CLIENT CONFIGURATION & INITIALIZATION
  * ==============================================================================
  * Project: talent-exchange-b8827
- * Connected on: 2026-09-21
+ * Architecture: Serverless Firebase (Auth, Firestore, Cloud Storage)
  * ==============================================================================
  */
 
-// Official Firebase Web configuration for Talent Exchange
 const firebaseConfig = {
   apiKey: "AIzaSyD9LKX1GFGJXnNWWZOQZon4VyEx6b0a65Y",
   authDomain: "talent-exchange-b8827.firebaseapp.com",
@@ -26,39 +25,62 @@ let _firebaseStorage = null;
 let _firebaseAuth = null;
 
 /**
- * Initializes the Firebase Web SDK if the SDK is loaded in window.
+ * Initializes the Firebase Web SDK.
  */
 function initFirebaseClient() {
   if (typeof window !== "undefined" && typeof window.firebase !== "undefined") {
     try {
       if (!window.firebase.apps || window.firebase.apps.length === 0) {
         _firebaseApp = window.firebase.initializeApp(firebaseConfig);
-        console.log("[Firebase Client]: Initialized app for project:", firebaseConfig.projectId);
+        console.log("[Talent Exchange Firebase]: Initialized app for project:", firebaseConfig.projectId);
       } else {
         _firebaseApp = window.firebase.apps[0];
       }
 
-      if (typeof window.firebase.firestore === "function") {
-        _firestoreDb = window.firebase.firestore();
-        console.log("[Firebase Client]: Cloud Firestore ready.");
-      }
-      if (typeof window.firebase.storage === "function") {
-        _firebaseStorage = window.firebase.storage();
-        console.log("[Firebase Client]: Cloud Storage ready (bucket: " + firebaseConfig.storageBucket + ").");
-      }
       if (typeof window.firebase.auth === "function") {
         _firebaseAuth = window.firebase.auth();
+        window.auth = _firebaseAuth;
+      }
+
+      if (typeof window.firebase.firestore === "function") {
+        _firestoreDb = window.firebase.firestore();
+        window.db = _firestoreDb;
+        console.log("[Talent Exchange Firebase]: Cloud Firestore ready.");
+      }
+
+      if (typeof window.firebase.storage === "function") {
+        _firebaseStorage = window.firebase.storage();
+        window.storage = _firebaseStorage;
+        console.log("[Talent Exchange Firebase]: Cloud Storage ready (bucket: " + firebaseConfig.storageBucket + ").");
       }
     } catch (err) {
-      console.warn("[Firebase Client Init]:", err.message);
+      console.warn("[Talent Exchange Firebase Init Warning]:", err.message);
     }
   }
   return _firebaseApp;
 }
 
-/**
- * Checks if the project is configured with live Firebase credentials.
- */
+function getFirebaseAuth() {
+  if (!_firebaseAuth && typeof window !== "undefined" && window.firebase) {
+    initFirebaseClient();
+  }
+  return _firebaseAuth || (window.firebase && typeof window.firebase.auth === "function" ? window.firebase.auth() : null);
+}
+
+function getFirestoreDb() {
+  if (!_firestoreDb && typeof window !== "undefined" && window.firebase) {
+    initFirebaseClient();
+  }
+  return _firestoreDb || (window.firebase && typeof window.firebase.firestore === "function" ? window.firebase.firestore() : null);
+}
+
+function getFirebaseStorage() {
+  if (!_firebaseStorage && typeof window !== "undefined" && window.firebase) {
+    initFirebaseClient();
+  }
+  return _firebaseStorage || (window.firebase && typeof window.firebase.storage === "function" ? window.firebase.storage() : null);
+}
+
 function isFirebaseConfigured() {
   return Boolean(
     FIREBASE_CONFIG.apiKey &&
@@ -67,51 +89,16 @@ function isFirebaseConfigured() {
   );
 }
 
-/**
- * Returns the client configuration object.
- */
-function getFirebaseConfig() {
-  return FIREBASE_CONFIG;
-}
-
-/**
- * Direct file upload helper to Firebase Cloud Storage (bucket: talent-exchange-b8827.firebasestorage.app)
- */
-async function uploadToFirebaseStorage(file, folder = "uploads") {
-  if (!_firebaseStorage) {
-    initFirebaseClient();
-  }
-
-  if (!_firebaseStorage) {
-    throw new Error("Firebase Storage SDK is not loaded. Falling back to backend server upload.");
-  }
-
-  const timestamp = Date.now();
-  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filePath = `${folder}/${timestamp}_${cleanName}`;
-  const storageRef = _firebaseStorage.ref().child(filePath);
-
-  const snapshot = await storageRef.put(file);
-  const downloadUrl = await snapshot.ref.getDownloadURL();
-
-  return {
-    success: true,
-    url: downloadUrl,
-    filename: cleanName,
-    storage: "firebase_cloud_storage"
-  };
-}
-
 // Global exports
 if (typeof window !== "undefined") {
   window.firebaseConfig = firebaseConfig;
   window.FIREBASE_CONFIG = FIREBASE_CONFIG;
   window.isFirebaseConfigured = isFirebaseConfigured;
-  window.getFirebaseConfig = getFirebaseConfig;
   window.initFirebaseClient = initFirebaseClient;
-  window.uploadToFirebaseStorage = uploadToFirebaseStorage;
+  window.getFirebaseAuth = getFirebaseAuth;
+  window.getFirestoreDb = getFirestoreDb;
+  window.getFirebaseStorage = getFirebaseStorage;
 
-  // Auto-initialize if Firebase script already loaded
   if (typeof window.firebase !== "undefined") {
     initFirebaseClient();
   }

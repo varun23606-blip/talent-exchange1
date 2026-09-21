@@ -53,3 +53,7 @@ backend/serviceAccountKey.json
 # Test upload artifacts
 *sample_cert*
 frontend/uploads/*sample_cert*
+
+# Firebase cache
+.firebase/
+

@@ -1,5 +1,6 @@
 /* ==========================================================================
-   TALENT EXCHANGE - USER PROFILE LOGIC
+   TALENT EXCHANGE - USER PROFILE CONTROLLER
+   Powered by Cloud Firestore & Firebase Cloud Storage
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -7,7 +8,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderNavbar("profile");
 
   const currentUser = getCurrentUser();
-  await loadUserProfile(currentUser.id);
+  const currentUid = currentUser.id || currentUser.uid;
+  await loadUserProfile(currentUid);
 
   // File input change indicators
   const videoFileInput = document.getElementById("edit-video-file");
@@ -38,32 +40,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Handle Verify Now Button
-  const btnVerifyNow = document.getElementById("btn-verify-now");
-  if (btnVerifyNow) {
-    btnVerifyNow.addEventListener("click", async () => {
-      setLoading(btnVerifyNow, true);
-      try {
-        const res = await api.post("/api/verify-certificate", {
-          user_id: currentUser.id,
-          status: "verified"
-        });
-        if (res.success) {
-          showToast("Certificate successfully verified! 🛡️ You are now a Verified Mentor.", "success");
-          setCurrentUser(res.data);
-          await loadUserProfile(currentUser.id);
-          renderNavbar("profile");
-        } else {
-          showToast(res.message || "Verification request failed", "error");
-        }
-      } catch (err) {
-        showToast(err.message || "Failed to verify certificate", "error");
-      } finally {
-        setLoading(btnVerifyNow, false);
-      }
-    });
-  }
-
   // Handle Profile Form Submission
   const editForm = document.getElementById("profile-edit-form");
   if (editForm) {
@@ -86,9 +62,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         // Upload video file if selected
         if (videoFileInput && videoFileInput.files && videoFileInput.files[0]) {
-          showToast("Uploading teaching video...", "info");
+          showToast("Uploading teaching video to Firebase Storage...", "info");
           const vRes = await api.upload(videoFileInput.files[0], "video");
-          if (vRes && vRes.success && vRes.url) {
+          if (vRes && vRes.url) {
             videoUrl = vRes.url;
             if (document.getElementById("edit-video-url")) {
               document.getElementById("edit-video-url").value = videoUrl;
@@ -98,15 +74,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Upload certificate file if selected
         if (certFileInput && certFileInput.files && certFileInput.files[0]) {
-          showToast("Uploading certificate document...", "info");
+          showToast("Uploading certificate document to Firebase Storage...", "info");
           const cRes = await api.upload(certFileInput.files[0], "certificate");
-          if (cRes && cRes.success && cRes.url) {
+          if (cRes && cRes.url) {
             certUrl = cRes.url;
             if (document.getElementById("edit-cert-url")) {
               document.getElementById("edit-cert-url").value = certUrl;
             }
           }
         }
+
+        const isNewCertSubmitted = Boolean(certUrl && certUrl !== currentUser.certificate_url);
 
         const payload = {
           name,
@@ -115,17 +93,33 @@ document.addEventListener("DOMContentLoaded", async () => {
           teach_skill: teachSkill,
           learn_skill: learnSkill,
           bio,
-          profile_image: profileImage,
+          profile_image: profileImage || "assets/avatar-default.svg",
           video_url: videoUrl,
           certificate_url: certUrl,
           certificate_title: certTitle
         };
 
-        const res = await api.put(`/api/profile/${currentUser.id}`, payload);
+        if (isNewCertSubmitted && !currentUser.is_verified) {
+          payload.verification_status = "pending";
+        }
+
+        const res = await api.put(`/api/users/${currentUid}`, payload);
         if (res.success && res.data) {
           setCurrentUser(res.data);
-          showToast("Profile updated successfully!", "success");
-          await loadUserProfile(currentUser.id);
+
+          // If new certificate submitted, record in certificates collection for admin review
+          if (isNewCertSubmitted && !currentUser.is_verified) {
+            await api.post("/api/certificates/submit", {
+              user_id: currentUid,
+              certificate_title: certTitle || "Skill Certificate",
+              file_url: certUrl,
+              file_name: certFileInput && certFileInput.files && certFileInput.files[0] ? certFileInput.files[0].name : "certificate"
+            });
+            showToast("Certificate submitted for administrator review! 📜", "info");
+          }
+
+          showToast("Profile updated successfully in Firestore!", "success");
+          await loadUserProfile(currentUid);
           renderNavbar("profile");
         } else {
           showToast(res.message || "Could not update profile", "error");
@@ -141,7 +135,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadUserProfile(userId) {
   try {
-    const res = await api.get(`/api/profile/${userId}`);
+    const res = await api.get(`/api/users/${userId}`);
     if (!res || !res.data) return;
 
     const u = res.data;
@@ -154,7 +148,6 @@ async function loadUserProfile(userId) {
     const teachEl = document.getElementById("view-teach");
     const learnEl = document.getElementById("view-learn");
     const bioEl = document.getElementById("view-bio");
-    const connsEl = document.getElementById("view-conns-count");
 
     if (avatarEl) avatarEl.src = u.profile_image || "assets/avatar-default.svg";
     if (nameEl) nameEl.textContent = u.name;
@@ -163,7 +156,6 @@ async function loadUserProfile(userId) {
     if (teachEl) teachEl.textContent = u.teach_skill || "Not configured";
     if (learnEl) learnEl.textContent = u.learn_skill || "Not configured";
     if (bioEl) bioEl.textContent = u.bio || "No bio added yet.";
-    if (connsEl) connsEl.textContent = u.connections_count || 0;
 
     // Verification Badge & Status
     const badgeContainer = document.getElementById("view-cert-badge-container");
@@ -179,15 +171,17 @@ async function loadUserProfile(userId) {
         }
         if (verifyNowContainer) verifyNowContainer.style.display = "none";
       } else if (u.verification_status === "pending" || u.certificate_url) {
-        badgeContainer.innerHTML = `<span class="badge badge-pending" style="font-size:0.85rem; padding:6px 14px;">⏳ Certificate Submitted</span>`;
+        badgeContainer.innerHTML = `<span class="badge badge-pending" style="font-size:0.85rem; padding:6px 14px;">⏳ Verification Pending Review</span>`;
         if (editPill) {
           editPill.textContent = "Pending Review ⏳";
           editPill.className = "badge badge-pending";
         }
         if (verifyNowContainer) {
           verifyNowContainer.style.display = "block";
+          const infoText = verifyNowContainer.querySelector("p") || verifyNowContainer;
+          infoText.innerHTML = `<span style="color:#fbbf24;">Your credential has been submitted and is currently in the administrator review queue.</span>`;
           const btn = document.getElementById("btn-verify-now");
-          if (btn) btn.textContent = "🛡️ Verify My Certificate Now";
+          if (btn) btn.style.display = "none";
         }
       } else {
         badgeContainer.innerHTML = `<span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-muted); font-size:0.85rem; padding:6px 14px;">Unverified Mentor</span>`;
@@ -220,7 +214,7 @@ async function loadUserProfile(userId) {
       }
     }
 
-    // Edit inputs
+    // Populate Edit Inputs
     if (document.getElementById("edit-name")) document.getElementById("edit-name").value = u.name || "";
     if (document.getElementById("edit-dept")) document.getElementById("edit-dept").value = u.department || "";
     if (document.getElementById("edit-sem")) document.getElementById("edit-sem").value = u.semester || "";

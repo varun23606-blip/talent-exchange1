@@ -79,6 +79,31 @@
             <textarea id="reg-bio" class="form-textarea" placeholder="Tell other students what you are working on, your projects, or your learning goals..."></textarea>
           </div>
 
+          <!-- Optional Teaching Demonstration Video -->
+          <div class="form-group col-full" style="background: rgba(139, 92, 246, 0.05); border: 1px dashed var(--primary); border-radius: var(--radius-md); padding: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: #fff;">
+                🎥 Teaching Demonstration Video (Optional)
+              </label>
+              <span class="badge badge-purple" style="font-size: 0.72rem;">Boost Matches</span>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
+              Upload a short clip (MP4, WebM, up to 50MB) showing your teaching style, or paste a video link.
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+              <div>
+                <label class="form-label" style="font-size: 0.82rem;">Upload Video File</label>
+                <input type="file" id="reg-video-file" class="form-input" accept="video/mp4,video/webm,video/ogg,video/quicktime" style="padding: 8px;">
+              </div>
+              <div>
+                <label class="form-label" for="reg-video-url" style="font-size: 0.82rem;">Or Direct Video URL</label>
+                <input type="url" id="reg-video-url" class="form-input" placeholder="https://assets.mixkit.co/... or cloud video URL">
+              </div>
+            </div>
+            <div id="reg-video-status" style="font-size: 0.82rem; color: var(--success); margin-top: 8px; display: none;"></div>
+          </div>
+
           <!-- Optional Skill Certificate Verification -->
           <div class="form-group col-full" style="background: rgba(99, 102, 241, 0.05); border: 1px dashed var(--primary); border-radius: var(--radius-md); padding: 16px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
@@ -88,17 +113,17 @@
               <span class="badge badge-verified" style="font-size: 0.72rem;">Earn Mentor Badge</span>
             </div>
             <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
-              Upload your diploma, certificate, or course completion credential to prove your skill and gain verified status.
+              Upload your diploma, certificate, or course credential to prove your skill and gain verified status.
             </p>
 
             <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
               <div>
                 <label class="form-label" for="reg-cert-title" style="font-size: 0.82rem;">Certificate Title / Issuer</label>
-                <input type="text" id="reg-cert-title" class="form-input" placeholder="e.g. AWS Certified Solutions Architect, PCAP Python, etc.">
+                <input type="text" id="reg-cert-title" class="form-input" placeholder="e.g. AWS Certified Solutions Architect, PCAP Python">
               </div>
 
               <div>
-                <label class="form-label" style="font-size: 0.82rem;">Upload Certificate File (PDF or Image)</label>
+                <label class="form-label" style="font-size: 0.82rem;">Upload Certificate File (PDF, PNG, JPG)</label>
                 <input type="file" id="reg-cert-file" class="form-input" accept=".pdf,.png,.jpg,.jpeg,.webp" style="padding: 8px;">
               </div>
 
@@ -120,11 +145,17 @@
         </p>
       </form>
     </div>
+  </main>
+
   <!-- Firebase Web SDK (v10.8.0) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+  <script src="js/firebase-auth.js"></script>
+  <script src="js/firebase-db.js"></script>
+  <script src="js/firebase-storage.js"></script>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script>

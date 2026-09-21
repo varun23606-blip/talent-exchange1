@@ -1,0 +1,377 @@
+﻿/* ==========================================================================
+   TALENT EXCHANGE - DASHBOARD, CARDS, DISCOVERY & PROFILE STYLES
+   ========================================================================== */
+
+/* Dashboard Welcome Banner */
+.welcome-banner {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%);
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-text h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.welcome-text p {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+}
+
+.welcome-cta {
+  display: flex;
+  gap: 12px;
+}
+
+/* Metric Cards Grid */
+.grid-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  transition: var(--transition);
+}
+
+.metric-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.metric-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.metric-icon-purple {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--primary);
+}
+
+.metric-icon-indigo {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--indigo);
+}
+
+.metric-icon-emerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--emerald);
+}
+
+.metric-icon-amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--amber);
+}
+
+.metric-info h4 {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.metric-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+/* Dashboard Two-Column Content Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 32px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-head h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.section-head a {
+  font-size: 0.9rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* User Card Component (Find Skills & Recommended) */
+.grid-users {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.user-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
+  position: relative;
+}
+
+.user-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-purple);
+}
+
+.user-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.user-card-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary);
+}
+
+.user-card-meta h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.user-card-dept {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.user-card-sem {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.user-card-skills {
+  background: var(--bg-glass);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+}
+
+.skill-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 60px;
+}
+
+.user-card-bio {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.user-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.user-card-actions .btn {
+  flex: 1;
+}
+
+/* Filter Controls Toolbar */
+.filter-toolbar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 32px;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+}
+
+/* Requests & Connections Lists */
+.request-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  transition: var(--transition);
+}
+
+.request-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.request-user-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.request-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.request-skills-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.request-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Tabs */
+.tabs-nav {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.tab-btn {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: var(--transition);
+}
+
+.tab-btn:hover {
+  color: #fff;
+}
+
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Profile View & Edit */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 32px;
+}
+
+.profile-card-left {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-avatar-large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--primary);
+  margin-bottom: 18px;
+  box-shadow: 0 0 20px var(--primary-glow);
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .filter-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .filter-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .welcome-banner {
+    padding: 24px;
+  }
+  .request-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .request-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

@@ -1,5 +1,6 @@
-﻿/* ==========================================================================
-   TALENT EXCHANGE - REQUESTS MANAGEMENT LOGIC
+/* ==========================================================================
+   TALENT EXCHANGE - REQUESTS MANAGEMENT CONTROLLER
+   Powered by Cloud Firestore Realtime Exchange Proposals
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -32,7 +33,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function loadRequests() {
     try {
-      const res = await api.get(`/api/requests?user_id=${user.id}`);
+      const uid = user.id || user.uid;
+      const res = await api.get(`/api/requests?user_id=${uid}`);
       const data = (res && res.data) ? res.data : { incoming: [], outgoing: [] };
 
       renderIncoming(data.incoming || []);
@@ -84,7 +86,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         setLoading(b, true);
         try {
           await api.put(`/api/requests/${b.dataset.id}`, { status: "Accepted" });
-          showToast("Exchange accepted! Connection created. You can now chat!", "success");
+          showToast("Exchange accepted! Connection created. You can now chat! 🎉", "success");
           await loadRequests();
         } catch (e) {
           showToast(e.message, "error");
@@ -98,7 +100,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         setLoading(b, true);
         try {
           await api.put(`/api/requests/${b.dataset.id}`, { status: "Rejected" });
-          showToast("Request rejected.", "info");
+          showToast("Exchange request rejected.", "info");
           await loadRequests();
         } catch (e) {
           showToast(e.message, "error");
@@ -114,9 +116,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       outgoingContainer.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">📤</div>
-          <div class="empty-title">No outgoing requests</div>
-          <div class="empty-desc">Explore the Find Skills page to discover potential skill partners and send requests.</div>
-          <a href="find-skills.html" class="btn btn-primary" style="margin-top:16px;">Find Skills</a>
+          <div class="empty-title">No outgoing proposals</div>
+          <div class="empty-desc">Propose an exchange with students who offer skills you want to learn!</div>
+          <a href="find-skills.html" class="btn btn-primary" style="margin-top:16px;">Browse Skills</a>
         </div>
       `;
       return;
@@ -127,38 +129,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div class="request-user-info">
           <img src="${r.receiver_image || 'assets/avatar-default.svg'}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;" alt="${r.receiver_name}" onerror="this.src='assets/avatar-default.svg'">
           <div class="request-details">
-            <h3 style="font-size:1.1rem;font-weight:700;">${r.receiver_name}</h3>
-            <div style="font-size:0.85rem;color:var(--text-secondary);">${r.receiver_dept || 'Student'} • ${r.receiver_semester || ''}</div>
+            <h3 style="font-size:1.1rem;font-weight:700;">Sent to ${r.receiver_name}</h3>
             <div class="request-skills-badge" style="margin-top:6px;">
               You Offered: <span class="badge badge-purple">${r.offered_skill}</span>
-              → For: <span class="badge badge-emerald">${r.requested_skill}</span>
+              → You Wanted: <span class="badge badge-emerald">${r.requested_skill}</span>
             </div>
           </div>
         </div>
         <div class="request-actions">
-          <span class="badge ${r.status === 'Accepted' ? 'badge-emerald' : r.status === 'Rejected' ? 'badge-amber' : 'badge-purple'}">${r.status}</span>
-          ${r.status === 'Pending' ? `
-            <button class="btn btn-secondary btn-sm btn-cancel" data-id="${r.id}">Cancel</button>
-          ` : ''}
-          ${r.status === 'Accepted' ? `
-            <a href="chat.html?userId=${r.receiver_id}" class="btn btn-primary btn-sm">Message</a>
-          ` : ''}
+          <span class="badge ${r.status === 'Accepted' ? 'badge-emerald' : r.status === 'Rejected' ? 'badge-amber' : 'badge-purple'}">
+            ${r.status}
+          </span>
         </div>
       </div>
     `).join("");
-
-    outgoingContainer.querySelectorAll(".btn-cancel").forEach(b => {
-      b.addEventListener("click", async () => {
-        setLoading(b, true);
-        try {
-          await api.put(`/api/requests/${b.dataset.id}`, { status: "Cancelled" });
-          showToast("Request cancelled.", "info");
-          await loadRequests();
-        } catch (e) {
-          showToast(e.message, "error");
-          setLoading(b, false);
-        }
-      });
-    });
   }
 });

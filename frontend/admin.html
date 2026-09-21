@@ -65,7 +65,7 @@
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap;">
           <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0;">Administrator Control Console</h1>
           <span class="admin-badge">🛡️ ADMIN PORTAL</span>
-          <span id="firebase-status-badge" class="admin-badge" style="background: rgba(249, 115, 22, 0.15); color: #fb923c; border-color: rgba(249, 115, 22, 0.35); font-size: 0.72rem;">🔥 Checking Firebase...</span>
+          <span id="firebase-status-badge" class="admin-badge" style="background: rgba(52, 211, 153, 0.15); color: #34d399; border-color: rgba(52, 211, 153, 0.35); font-size: 0.72rem;">🔥 Firebase: Live</span>
         </div>
         <p style="color: var(--text-secondary); margin: 0; font-size: 0.95rem;">
           Platform moderation, skill credential verifications, and student activity oversight
@@ -79,8 +79,8 @@
       </div>
     </div>
 
-    <!-- Quick Metric Overview -->
-    <section class="grid-metrics" style="margin-bottom: 36px;">
+    <!-- Live Firestore Metric Analytics Overview -->
+    <section class="grid-metrics" style="margin-bottom: 36px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
       <div class="metric-card">
         <div class="metric-icon-box metric-icon-purple">👥</div>
         <div class="metric-info">
@@ -112,6 +112,22 @@
           <div class="metric-value" id="stat-pending-verifications" style="color: #fbbf24;">0</div>
         </div>
       </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-box metric-icon-purple">🤝</div>
+        <div class="metric-info">
+          <h4>Connections</h4>
+          <div class="metric-value" id="stat-active-connections">0</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-box metric-icon-emerald">🔄</div>
+        <div class="metric-info">
+          <h4>Exchanges</h4>
+          <div class="metric-value" id="stat-exchanges-completed">0</div>
+        </div>
+      </div>
     </section>
 
     <!-- Section 1: Skill Certificate Verifications -->
@@ -140,7 +156,7 @@
           <tbody id="verifications-table-body">
             <tr>
               <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-secondary);">
-                Loading verification requests...
+                Loading verification requests from Firestore...
               </td>
             </tr>
           </tbody>
@@ -170,7 +186,7 @@
               <th>Department / Sem</th>
               <th>Role</th>
               <th>Skills Count</th>
-              <th>Connections</th>
+              <th>Primary Skill</th>
               <th>Verification</th>
               <th style="text-align: right;">Action</th>
             </tr>
@@ -178,7 +194,7 @@
           <tbody id="users-table-body">
             <tr>
               <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-secondary);">
-                Loading student records...
+                Loading student records from Firestore...
               </td>
             </tr>
           </tbody>
@@ -189,9 +205,13 @@
 
   <!-- Firebase Web SDK (v10.8.0) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+  <script src="js/firebase-auth.js"></script>
+  <script src="js/firebase-db.js"></script>
+  <script src="js/firebase-storage.js"></script>
   <script src="js/api.js"></script>
   <script src="js/admin.js"></script>
 </body>

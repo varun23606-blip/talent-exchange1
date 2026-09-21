@@ -1,5 +1,6 @@
-﻿/* ==========================================================================
-   TALENT EXCHANGE - CONNECTIONS LOGIC
+/* ==========================================================================
+   TALENT EXCHANGE - CONNECTIONS CONTROLLER
+   Powered by Cloud Firestore Connections Network
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -20,6 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const filtered = allConnections.filter(c => 
         (c.name || "").toLowerCase().includes(q) ||
         (c.teach_skill || "").toLowerCase().includes(q) ||
+        (c.learn_skill || "").toLowerCase().includes(q) ||
         (c.department || "").toLowerCase().includes(q)
       );
       renderConnections(filtered);
@@ -29,7 +31,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function loadConnections() {
     if (!container) return;
     try {
-      const res = await api.get(`/api/connections?user_id=${user.id}`);
+      const uid = user.id || user.uid;
+      const res = await api.get(`/api/connections?user_id=${uid}`);
       allConnections = (res && res.data) ? res.data : [];
       renderConnections(allConnections);
     } catch (err) {
@@ -45,46 +48,58 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div class="empty-icon">🤝</div>
           <div class="empty-title">No connections found</div>
           <div class="empty-desc">You have not established any skill exchanges yet. Search for students to connect with!</div>
-          <a href="find-skills.html" class="btn btn-primary" style="margin-top:16px;">Find Skills</a>
+          <a href="find-skills.html" class="btn btn-primary" style="margin-top:16px;">Browse Skills</a>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = connections.map(c => `
-      <div class="user-card">
-        <div class="user-card-header">
-          <img src="${c.profile_image || 'assets/avatar-default.svg'}" class="user-card-avatar" alt="${c.name}" onerror="this.src='assets/avatar-default.svg'">
-          <div class="user-card-meta">
-            <h3>${c.name}</h3>
-            <div class="user-card-dept">${c.department || 'Student'}</div>
-            <div class="user-card-sem">${c.semester || ''}</div>
+    container.innerHTML = connections.map(c => {
+      const isVerified = Boolean(c.is_verified);
+      const cId = c.id || c.uid;
+
+      return `
+        <div class="user-card">
+          <div class="user-card-header">
+            <img src="${c.profile_image || 'assets/avatar-default.svg'}" class="user-card-avatar" alt="${c.name}" onerror="this.src='assets/avatar-default.svg'">
+            <div class="user-card-meta">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <h3 style="margin-bottom:0;">${c.name}</h3>
+                ${isVerified ? '<span class="badge badge-verified" title="Verified Mentor">🛡️ Verified</span>' : ''}
+              </div>
+              <div class="user-card-dept">${c.department || 'Student'}</div>
+              <div class="user-card-sem">${c.semester || ''}</div>
+              <div style="margin-top:4px;"><span class="badge badge-emerald">Connected</span></div>
+            </div>
+          </div>
+          <div class="user-card-skills">
+            <div class="skill-row">
+              <span class="skill-label">Teaches:</span>
+              <span class="badge badge-purple">${c.teach_skill || 'General'}</span>
+            </div>
+            <div class="skill-row">
+              <span class="skill-label">Wants:</span>
+              <span class="badge badge-emerald">${c.learn_skill || 'Any skill'}</span>
+            </div>
+          </div>
+          <p class="user-card-bio">${c.bio || 'Connected skill exchange partner.'}</p>
+          <div class="user-card-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="chat.html?userId=${cId}" class="btn btn-primary btn-sm" style="flex: 1 1 45%; text-align: center;">
+              💬 Open Chat
+            </a>
+            <button class="btn btn-secondary btn-sm btn-view-partner-profile" data-user-id="${cId}" style="flex: 1 1 45%;">
+              👤 View Profile
+            </button>
+            <button class="btn btn-secondary btn-sm btn-start-video" data-user-id="${cId}" data-user-name="${c.name}" style="flex: 1 1 45%;">
+              📹 Video Call
+            </button>
+            <button class="btn btn-secondary btn-sm btn-start-audio" data-user-id="${cId}" data-user-name="${c.name}" style="flex: 1 1 45%;">
+              📞 Audio Call
+            </button>
           </div>
         </div>
-        <div class="user-card-skills">
-          <div class="skill-row">
-            <span class="skill-label">Teaches:</span>
-            <span class="badge badge-purple">${c.teach_skill || 'General'}</span>
-          </div>
-          <div class="skill-row">
-            <span class="skill-label">Wants:</span>
-            <span class="badge badge-emerald">${c.learn_skill || 'Any skill'}</span>
-          </div>
-        </div>
-        <p class="user-card-bio">${c.bio || 'Connected skill exchange partner.'}</p>
-        <div class="user-card-actions" style="flex-wrap: wrap;">
-          <a href="chat.html?userId=${c.id}" class="btn btn-primary btn-sm" style="flex: 1 1 45%;">
-            💬 Open Chat
-          </a>
-          <button class="btn btn-secondary btn-sm btn-start-video" data-user-id="${c.id}" data-user-name="${c.name}" style="flex: 1 1 20%;">
-            📹 Video
-          </button>
-          <button class="btn btn-secondary btn-sm btn-start-audio" data-user-id="${c.id}" data-user-name="${c.name}" style="flex: 1 1 20%;">
-            📞 Audio
-          </button>
-        </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
 
     // Bind WebRTC Call Launchers
     container.querySelectorAll(".btn-start-video").forEach(b => {
@@ -99,6 +114,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       b.addEventListener("click", () => {
         if (window.startAudioCall) {
           window.startAudioCall(b.dataset.userId, b.dataset.userName);
+        }
+      });
+    });
+
+    // Bind Profile Viewer
+    container.querySelectorAll(".btn-view-partner-profile").forEach(b => {
+      b.addEventListener("click", () => {
+        const partner = allConnections.find(c => (c.id || c.uid) === b.dataset.userId);
+        if (partner) {
+          showToast(`Viewing ${partner.name}'s profile. Teaches: ${partner.teach_skill}, Wants: ${partner.learn_skill}`, "info");
         }
       });
     });

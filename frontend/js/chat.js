@@ -1,5 +1,7 @@
-﻿/* ==========================================================================
-   TALENT EXCHANGE - REAL-TIME CHAT ENGINE
+/* ==========================================================================
+   TALENT EXCHANGE - REAL-TIME FIRESTORE CHAT ENGINE
+   Architecture: Cloud Firestore onSnapshot Realtime Listeners
+   Eliminates: Integer ID parsing errors and Flask polling
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -7,6 +9,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderNavbar("chat");
 
   const currentUser = getCurrentUser();
+  const currentUid = (window.firebaseAuth && window.firebaseAuth.getCurrentUserUid()) || currentUser.id || currentUser.uid;
+
   const urlParams = new URLSearchParams(window.location.search);
   let activePartnerId = urlParams.get("userId");
 
@@ -16,14 +20,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const messageInput = document.getElementById("chat-message-input");
   const sendForm = document.getElementById("chat-send-form");
 
-  let pollInterval = null;
+  let unsubscribeMessages = null;
   let currentPartner = null;
-  let knownMessageCount = 0;
 
-  // 1. Fetch Connections
+  // 1. Fetch Connections from Firestore
   let connections = [];
   try {
-    const res = await api.get(`/api/connections?user_id=${currentUser.id}`);
+    const res = await api.get(`/api/connections?user_id=${currentUid}`);
     connections = (res && res.data) ? res.data : [];
   } catch (err) {
     showToast("Failed to load chat contacts: " + err.message, "error");
@@ -34,11 +37,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // If no partner selected in URL, default to first connection
   if (!activePartnerId && connections.length > 0) {
-    activePartnerId = connections[0].id;
+    activePartnerId = connections[0].id || connections[0].uid;
   }
 
   if (activePartnerId) {
-    selectContact(parseInt(activePartnerId, 10));
+    selectContact(String(activePartnerId));
   } else {
     showNoConnectionSelected();
   }
@@ -52,22 +55,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       const messageText = messageInput.value.trim();
       if (!messageText) return;
 
-      const submitBtn = sendForm.querySelector("button[type='submit']");
+      const targetPartnerId = currentPartner.id || currentPartner.uid;
       messageInput.value = "";
       messageInput.focus();
 
-      // Ensure exact keys required by backend
-      const payload = {
-        sender_id: parseInt(currentUser.id, 10),
-        receiver_id: parseInt(currentPartner.id, 10),
-        message: messageText
-      };
-
       try {
-        const res = await api.post("/api/messages", payload);
-        if (res && res.success && res.data) {
-          appendSingleMessage(res.data, true);
-          scrollToBottom();
+        if (window.firebaseDb) {
+          await window.firebaseDb.sendMessage(currentUid, targetPartnerId, messageText);
+        } else {
+          await api.post("/api/messages", {
+            sender_id: currentUid,
+            receiver_id: targetPartnerId,
+            message: messageText
+          });
         }
       } catch (err) {
         showToast(err.message || "Could not send message", "error");
@@ -86,7 +86,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
       if (window.startVideoCall) {
-        window.startVideoCall(currentPartner.id, currentPartner.name);
+        window.startVideoCall(currentPartner.id || currentPartner.uid, currentPartner.name);
       }
     });
   }
@@ -98,7 +98,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
       if (window.startAudioCall) {
-        window.startAudioCall(currentPartner.id, currentPartner.name);
+        window.startAudioCall(currentPartner.id || currentPartner.uid, currentPartner.name);
       }
     });
   }
@@ -109,155 +109,149 @@ document.addEventListener("DOMContentLoaded", async () => {
       contactsList.innerHTML = `
         <li style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
           No active connections yet.<br>
-          <a href="find-skills.html" style="color:var(--primary); font-weight:600; margin-top:8px; display:inline-block;">Find partners</a>
+          <a href="find-skills.html" style="color:var(--primary); font-weight:600; margin-top:8px; display:inline-block;">Find skill partners</a>
         </li>
       `;
       return;
     }
 
-    contactsList.innerHTML = conns.map(c => `
-      <li class="contact-item ${parseInt(activePartnerId, 10) === c.id ? 'active' : ''}" data-id="${c.id}">
-        <img src="${c.profile_image || 'assets/avatar-default.svg'}" class="contact-avatar" alt="${c.name}" onerror="this.src='assets/avatar-default.svg'">
-        <div class="contact-info">
-          <div class="contact-name">${c.name}</div>
-          <div class="contact-sub">${c.teach_skill || 'Skill Partner'}</div>
-        </div>
-      </li>
-    `).join("");
+    contactsList.innerHTML = conns.map(c => {
+      const cId = String(c.id || c.uid);
+      const isActive = String(activePartnerId) === cId;
+      return `
+        <li class="contact-item ${isActive ? 'active' : ''}" data-id="${cId}">
+          <img src="${c.profile_image || 'assets/avatar-default.svg'}" class="contact-avatar" alt="${c.name}" onerror="this.src='assets/avatar-default.svg'">
+          <div class="contact-meta">
+            <div class="contact-name">${c.name}</div>
+            <div class="contact-skill">${c.teach_skill || 'Partner'} • ${c.department || 'Student'}</div>
+          </div>
+        </li>
+      `;
+    }).join("");
 
     contactsList.querySelectorAll(".contact-item").forEach(item => {
       item.addEventListener("click", () => {
-        const id = parseInt(item.dataset.id, 10);
-        selectContact(id);
+        selectContact(item.dataset.id);
       });
     });
   }
 
-  async function selectContact(partnerId) {
-    activePartnerId = partnerId;
+  function selectContact(partnerId) {
+    activePartnerId = String(partnerId);
+    currentPartner = connections.find(c => String(c.id || c.uid) === activePartnerId);
 
-    // Update active contact highlighting
+    // Update active highlight in contacts list
     if (contactsList) {
       contactsList.querySelectorAll(".contact-item").forEach(item => {
-        item.classList.toggle("active", parseInt(item.dataset.id, 10) === partnerId);
+        item.classList.toggle("active", item.dataset.id === activePartnerId);
       });
     }
 
-    // Fetch partner details
-    try {
-      const res = await api.get(`/api/profile/${partnerId}`);
-      currentPartner = res.data;
-    } catch (e) {
-      currentPartner = connections.find(c => c.id === partnerId) || { id: partnerId, name: "Partner" };
+    if (!currentPartner) {
+      showNoConnectionSelected();
+      return;
     }
 
-    // Update Chat Header
+    // Update Header
     if (chatHeaderUser) {
       chatHeaderUser.innerHTML = `
         <img src="${currentPartner.profile_image || 'assets/avatar-default.svg'}" class="chat-header-avatar" alt="${currentPartner.name}" onerror="this.src='assets/avatar-default.svg'">
-        <div>
+        <div class="chat-header-meta">
           <div class="chat-header-name">${currentPartner.name}</div>
-          <div class="chat-header-meta">
-            <span class="badge badge-purple" style="font-size:0.75rem;">Teaches: ${currentPartner.teach_skill || 'General'}</span>
-            <span style="color:var(--emerald);">● Online</span>
-          </div>
+          <div class="chat-header-status">Teaches: ${currentPartner.teach_skill || 'General'} • Wants: ${currentPartner.learn_skill || 'General'}</div>
         </div>
       `;
     }
 
-    // Enable input
+    // Enable message input and buttons
     if (messageInput) messageInput.disabled = false;
+    const sendBtn = sendForm ? sendForm.querySelector("button[type='submit']") : null;
+    if (sendBtn) sendBtn.disabled = false;
+    if (videoBtn) videoBtn.disabled = false;
+    if (audioBtn) audioBtn.disabled = false;
 
-    // Initial message load & start polling
-    knownMessageCount = 0;
-    await fetchMessages();
-
-    clearInterval(pollInterval);
-    // Reliable 3-second live polling
-    pollInterval = setInterval(fetchMessages, 3000);
+    // Attach Firestore Realtime Listener
+    attachFirestoreChatListener(currentUid, activePartnerId);
   }
 
-  async function fetchMessages() {
-    if (!currentPartner || !messagesArea) return;
+  function attachFirestoreChatListener(uid1, uid2) {
+    if (unsubscribeMessages) {
+      unsubscribeMessages();
+      unsubscribeMessages = null;
+    }
 
-    try {
-      const res = await api.get(`/api/messages/${currentPartner.id}?current_user_id=${currentUser.id}`);
-      const messages = (res && res.data) ? res.data : [];
+    if (!messagesArea) return;
+    messagesArea.innerHTML = `
+      <div style="display:flex; justify-content:center; align-items:center; height:100%; color:var(--text-muted);">
+        <span class="spinner"></span> &nbsp; Connecting realtime messages...
+      </div>
+    `;
 
-      // Only re-render if message count changed
-      if (messages.length !== knownMessageCount) {
-        knownMessageCount = messages.length;
-        renderMessageList(messages);
-        scrollToBottom();
-      }
-    } catch (err) {
-      console.warn("Polling messages warning:", err.message);
+    const conversationId = window.firebaseDb 
+      ? window.firebaseDb.getConversationId(uid1, uid2)
+      : [String(uid1), String(uid2)].sort().join("_");
+
+    if (window.firebaseDb && typeof window.firebaseDb.listenMessages === "function") {
+      unsubscribeMessages = window.firebaseDb.listenMessages(conversationId, (messages) => {
+        renderMessageList(messages, uid1);
+      });
     }
   }
 
-  function renderMessageList(messages) {
+  function renderMessageList(messages, currentUserId) {
     if (!messagesArea) return;
 
-    if (messages.length === 0) {
+    if (!messages || messages.length === 0) {
       messagesArea.innerHTML = `
         <div class="empty-state" style="margin: auto;">
           <div class="empty-icon">💬</div>
-          <div class="empty-title">Start your conversation</div>
-          <div class="empty-desc">Say hello to ${currentPartner.name} and plan your skill exchange session!</div>
+          <div class="empty-title">Start the conversation!</div>
+          <div class="empty-desc">Say hello and arrange your skill exchange schedule.</div>
         </div>
       `;
       return;
     }
 
     messagesArea.innerHTML = messages.map(m => {
-      const isOutgoing = m.sender_id === currentUser.id;
-      const timeStr = formatMsgTime(m.created_at);
+      const isMine = String(m.sender_id) === String(currentUserId);
+      const timeStr = m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
       return `
-        <div class="message-row ${isOutgoing ? 'message-outgoing' : 'message-incoming'}">
-          <div class="message-bubble">
-            ${escapeHtml(m.message)}
-            <span class="message-time">${timeStr} ${isOutgoing ? '✓' : ''}</span>
+        <div class="message-row ${isMine ? 'mine' : 'theirs'}">
+          <div class="message-bubble ${isMine ? 'bubble-mine' : 'bubble-theirs'}">
+            <div class="message-text">${escapeHtml(m.message)}</div>
+            <div class="message-time">${timeStr}</div>
           </div>
         </div>
       `;
     }).join("");
-  }
 
-  function appendSingleMessage(m, isOutgoing) {
-    if (!messagesArea) return;
-    const emptyState = messagesArea.querySelector(".empty-state");
-    if (emptyState) emptyState.remove();
-
-    const timeStr = formatMsgTime(m.created_at);
-    const div = document.createElement("div");
-    div.className = `message-row ${isOutgoing ? 'message-outgoing' : 'message-incoming'}`;
-    div.innerHTML = `
-      <div class="message-bubble">
-        ${escapeHtml(m.message)}
-        <span class="message-time">${timeStr} ${isOutgoing ? '✓' : ''}</span>
-      </div>
-    `;
-    messagesArea.appendChild(div);
-    knownMessageCount++;
+    scrollToBottom();
   }
 
   function showNoConnectionSelected() {
     if (chatHeaderUser) {
       chatHeaderUser.innerHTML = `
-        <div style="color:var(--text-secondary);">No connection selected</div>
+        <div class="chat-header-meta">
+          <div class="chat-header-name">No Conversation Selected</div>
+          <div class="chat-header-status">Choose a connection from the left to start messaging</div>
+        </div>
       `;
     }
     if (messagesArea) {
       messagesArea.innerHTML = `
         <div class="empty-state" style="margin: auto;">
-          <div class="empty-icon">🤝</div>
-          <div class="empty-title">Welcome to Messages</div>
-          <div class="empty-desc">Select an accepted connection on the left or send an exchange request to start chatting.</div>
-          <a href="find-skills.html" class="btn btn-primary" style="margin-top:16px;">Find Skill Partners</a>
+          <div class="empty-icon">👥</div>
+          <div class="empty-title">Select a Skill Partner</div>
+          <div class="empty-desc">Click any student from your connections list on the left to start trading skills.</div>
         </div>
       `;
     }
     if (messageInput) messageInput.disabled = true;
+    const sendBtn = sendForm ? sendForm.querySelector("button[type='submit']") : null;
+    if (sendBtn) sendBtn.disabled = true;
+    if (videoBtn) videoBtn.disabled = true;
+    if (audioBtn) audioBtn.disabled = true;
   }
 
   function scrollToBottom() {
@@ -266,24 +260,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  function formatMsgTime(dateVal) {
-    if (!dateVal) return "";
-    try {
-      const d = new Date(dateVal);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-      return "";
-    }
-  }
-
-  function escapeHtml(str) {
+  function escapeHtml(text) {
     const div = document.createElement("div");
-    div.textContent = str;
+    div.textContent = text || "";
     return div.innerHTML;
   }
-
-  // Clear polling on page leave
-  window.addEventListener("beforeunload", () => {
-    clearInterval(pollInterval);
-  });
 });

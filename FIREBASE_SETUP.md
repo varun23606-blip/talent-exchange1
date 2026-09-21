@@ -42,17 +42,15 @@ This guide explains how **Firebase** powers the **Talent Exchange** backend (Clo
 
 ---
 
-## ⚡ Quick Summary: How Frontend and Backend Connect
+## ⚡ Quick Summary: Client Architecture
 
-1. **The Frontend (`frontend/js/api.js`)** sends requests to the backend using standard HTTP `fetch()`:
-   - When running locally: `http://localhost:5000`
-   - When running in production (GitHub Pages): your Render backend URL
-2. **The Backend (`backend/app.py`)** receives the HTTP requests:
-   - Validates data and hashes passwords with PBKDF2/SHA256.
-   - Saves records into **Google Cloud Firestore** via `backend/firebase_db.py`.
-   - Stores demonstration videos and certificates directly into **Firebase Cloud Storage**.
-3. **The Backend returns JSON** back to the frontend:
-   - The frontend immediately updates the UI, renders the glassmorphic cards, streams teaching videos, or displays certificates.
+1. **The Frontend (`frontend/js/`)** connects directly to Firebase services using the official Firebase Web SDK (v10.8.0):
+   - **Authentication** (`js/firebase-auth.js`): Manages student registration, student login, and admin login directly with Firebase Auth.
+   - **Database** (`js/firebase-db.js`): Reads and writes users, skills, exchange proposals, connections, messages, and certificates directly with Cloud Firestore.
+   - **Storage** (`js/firebase-storage.js`): Uploads demonstration videos and certificates directly into Firebase Cloud Storage.
+2. **Real-Time Responsiveness**:
+   - Cloud Firestore `onSnapshot` listeners deliver instant chat messages and notifications without page refreshing.
+   - Zero Render, Flask, or PostgreSQL dependencies are required for production operation.
 
 ---
 
@@ -191,13 +189,15 @@ If you haven't added `serviceAccountKey.json` yet, the backend automatically run
 
 ---
 
-## 🌐 Production Deployment (Render + GitHub Pages)
-
-1. **Deploy Backend on Render**:
-   - Add environment variable:
-     - `FIREBASE_SERVICE_ACCOUNT`: paste the entire JSON content of your `serviceAccountKey.json` as a single string, OR upload as a secret file.
-     - `FIREBASE_STORAGE_BUCKET`: `your-project-id.appspot.com`
-2. **Deploy Frontend on GitHub Pages**:
-   - Push your repository to GitHub.
-   - Enable GitHub Pages under **Repository Settings > Pages**.
-   - `frontend/js/api.js` will automatically detect GitHub Pages and route all requests to your Render Firebase backend!
+## 🌐 Production Deployment (GitHub Pages)
+ 
+1. **Push Repository to GitHub**:
+   - Push your code to your repository: `https://github.com/varun23606-blip/talent-exchange1`
+2. **Enable GitHub Pages**:
+   - Navigate to **Settings** → **Pages**.
+   - Under **Build and deployment**: Select Source: `Deploy from a branch`, Branch: `main`, Folder: `/docs` (or `/`).
+   - Click **Save**.
+3. **Live Deployment**:
+   - GitHub Pages serves your site directly:
+     `https://varun23606-blip.github.io/talent-exchange1/`
+   - The frontend communicates directly with Firebase Authentication, Cloud Firestore, and Cloud Storage with zero backend servers!

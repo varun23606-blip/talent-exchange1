@@ -1,283 +1,231 @@
-# 🎓 TALENT EXCHANGE
-> **"Learn. Teach. Connect."**
+# TALENT EXCHANGE
 
-Talent Exchange is a production-style campus peer skill-sharing platform powered by a **Firebase** backend (Cloud Firestore NoSQL database, Firebase Cloud Storage for media, and Firebase Admin SDK) with a Python Flask REST API server and a modern glassmorphic responsive frontend. Students can offer skills they are proficient in, discover peers who possess the skills they wish to learn, send reciprocal exchange requests, chat in real time, upload teaching videos and certificates, and launch audio/video collaboration sessions.
-
----
-
-## 🏗️ Architecture Overview
-
-```
-Frontend (HTML5 / Vanilla JS / CSS3) ─────── [GitHub Pages / Local Port 8000]
-                 │
-                 ▼ (REST JSON / Fetch API via API_BASE_URL)
-Backend (Flask REST API + CORS) ───────────── [Render Web Service / Local Port 5000]
-                 │
-                 ▼ (Firebase Admin SDK / Google Cloud)
-Firebase Cloud Services:
-  ├── Cloud Firestore ────────────────────── [Users, Skills, Requests, Connections, Messages]
-  └── Cloud Storage Bucket ───────────────── [Videos (.mp4/.webm), Certificates (.pdf/.jpg)]
-  └── (Auto-fallback to SQLite/local upload if serviceAccountKey.json is not present)
-```
-
-> 📖 **Full Firebase Setup Guide**: For complete step-by-step instructions on creating a Firebase project and generating credentials, see [FIREBASE_SETUP.md](FIREBASE_SETUP.md).
-
-### Configurable API Base URL (Frontend → Backend Connection)
-The frontend connects to the backend through a single centralized configuration in `frontend/js/api.js`:
-```javascript
-const API_BASE_URL =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000"
-    : "https://talent-exchange-backend-p5wq.onrender.com";
-```
-- **Local Development**: When running frontend locally, requests route automatically to `http://localhost:5000`.
-- **Production**: When hosted on GitHub Pages or custom domain, requests route automatically to your Render web service backend.
+> **Learn. Teach. Connect.**  
+> *The premier campus skill-sharing & peer mentorship platform.*
 
 ---
 
-## 📁 Repository Structure
+## 🌟 Overview
+
+**Talent Exchange** is a modern, responsive web platform designed for students and learners to trade knowledge directly through peer-to-peer barter. Students can share what they know, learn what they love, demonstrate their expertise through teaching demo videos, and earn verified mentor status by submitting skill certificates.
+
+### 🏛️ Pure Firebase Architecture
+
+The platform operates on a 100% serverless, cloud-native architecture powered by **Google Firebase** and **GitHub Pages**:
 
 ```
-talent-exchange/
-├── FIREBASE_SETUP.md        # Step-by-step Firebase project configuration guide
-├── backend/
-│   ├── app.py               # Flask REST API endpoints, CORS & routing logic
-│   ├── firebase_config.py   # Firebase Admin SDK initialization & credentials loader
-│   ├── firebase_db.py       # Cloud Firestore CRUD operations for all collections
-│   ├── serviceAccountKey.json.example # Template for Firebase service account private key
-│   ├── database.py          # Relational engine & local fallback pool
-│   ├── models.py            # Serializers & security sanitizer
-│   ├── requirements.txt     # Python production dependencies (firebase-admin, Flask, etc.)
-│   ├── Procfile             # Render start command (web: gunicorn app:app)
-│   └── test_api.py          # Automated test suite (11 tests, 100% passing)
-│
-├── frontend/
-│   ├── index.html           # Landing page with hero, features, stats, steps
-│   ├── login.html           # Student authentication login page
-│   ├── admin-login.html     # Administrator authentication portal
-│   ├── register.html        # Student registration & skill declaration
-│   ├── dashboard.html       # Personalized student hub & recommendations
-│   ├── find-skills.html     # Real-time search & discovery directory
-│   ├── offer-skill.html     # Skill offering & proficiency editor
-│   ├── requests.html        # Inbound and outbound exchange management
-│   ├── connections.html     # Active peer network directory
-│   ├── chat.html            # Real-time messaging with live polling
-│   ├── profile.html         # User profile viewer & editor
-│   ├── admin.html           # Admin moderation & certificate verification console
-│   ├── manifest.json        # PWA Web App Manifest
-│   ├── service-worker.js    # PWA Service Worker (Cache-first assets, live network APIs)
-│   │
+                       TALENT EXCHANGE
+
+              ┌─────────────────────────────┐
+              │          FRONTEND           │
+              │   HTML5 + CSS + JavaScript  │
+              │  GitHub Pages / Web Server  │
+              └──────────────┬──────────────┘
+                             │
+                             │ Firebase Web SDK (v10.8.0)
+                             ▼
+              ┌─────────────────────────────┐
+              │          FIREBASE           │
+              │                             │
+              │  🔥 Firebase Authentication │
+              │  📦 Cloud Firestore         │
+              │  🗂️ Firebase Cloud Storage  │
+              │  🌐 Firebase Hosting        │
+              └─────────────────────────────┘
+```
+
+- **Zero Server Overhead**: Does NOT require Render, Flask, or PostgreSQL for production operation.
+- **Firebase Project**: `talent-exchange-b8827`
+- **Frontend Hosting**: Deployable directly via GitHub Pages or Firebase Hosting.
+- **Realtime Database**: Cloud Firestore provides instant messaging, notifications, and live status updates without polling.
+- **Authentication**: Firebase Authentication securely manages student and admin accounts with client-side credential verification.
+- **Cloud Storage**: Firebase Cloud Storage securely hosts teaching demonstration videos, skill certificates, and profile images.
+
+---
+
+## ✨ Features
+
+1. **Authentication & Roles**:
+   - Student registration and login powered by Firebase Authentication.
+   - Separate **Administrator Portal** (`admin-login.html` & `admin.html`) with role-based access control (`role: "admin"`).
+   - Session persistence and secure sign-out.
+
+2. **Skill Discovery & Filtering (`find-skills.html`)**:
+   - Filter by skill name, department, semester, and a dedicated **"Verified Mentors Only"** toggle.
+   - User cards display teaching skills, learning interests, bios, verification badges, and preview buttons.
+
+3. **Skill Exchange Workflow (`requests.html` & `dashboard.html`)**:
+   - Send targeted exchange proposals specifying what you offer and what you want in return.
+   - Prevents duplicate pending requests and prevents self-proposals.
+   - Accepting a proposal automatically creates a mutual connection in the `connections` collection and triggers a realtime notification.
+
+4. **Real-time Chat Engine (`chat.html`)**:
+   - Live messaging powered by Cloud Firestore `onSnapshot` realtime listeners.
+   - Instant message delivery without manual page refreshing.
+   - Sender identity tied directly to `firebase.auth().currentUser.uid`.
+
+5. **Teaching Demonstration Videos (`offer-skill.html`, `profile.html`)**:
+   - Students upload demonstration videos (`.mp4`, `.webm`, `.ogg`, `.mov`, up to 50MB) or provide streaming links.
+   - Stored in Firebase Cloud Storage under `teaching-videos/{uid}/`.
+   - Embedded modal video player (`▶ Watch Teaching Video`) allows learners to preview teaching styles.
+
+6. **Skill Certificate Verification & Verified Mentor Badge (`admin.html`)**:
+   - Students submit credential documents (`.pdf`, `.png`, `.jpg`, `.jpeg`, `.webp`) or Credly links.
+   - Stored in Firebase Cloud Storage under `certificates/{uid}/`.
+   - Submitted certificates enter an admin review queue with `status: "pending"`.
+   - Administrator reviews credential documents and approves or rejects submissions.
+   - Approved students receive the prestigious **`🛡️ Verified Mentor`** badge across their profile, cards, and search results.
+
+7. **Audio & Video Collaboration Preview (`calls.js`)**:
+   - Browser WebRTC (`getUserMedia()`, `RTCPeerConnection`).
+   - Clear UI distinction between **Local Preview (Waiting for peer)** and **Connected Call**.
+   - Camera toggle, microphone mute/unmute, live call timer, and hang-up controls.
+
+8. **Admin Control Console & Live Analytics (`admin.html`)**:
+   - Dynamic platform metrics loaded live from Firestore: Total Students, Skills Offered, Verified Mentors, Pending Review, Active Connections, and Completed Exchanges.
+   - Comprehensive student directory with search and badge management.
+
+9. **Progressive Web App (PWA)**:
+   - Modern glassmorphism UI theme with responsive mobile navigation.
+   - Offline static app shell caching via `service-worker.js`.
+   - Direct network pass-through for all live Firebase operations.
+
+---
+
+## 📁 Project Structure
+
+```
+talent-exchange1/
+├── frontend/                     # Primary web application source
+│   ├── index.html                # Landing page & platform overview
+│   ├── login.html                # Student login portal
+│   ├── register.html             # Student registration with video/cert uploads
+│   ├── dashboard.html            # Student dashboard with live metrics & recommendations
+│   ├── find-skills.html          # Search & filter students and verified mentors
+│   ├── offer-skill.html          # Skill offering & credential submission form
+│   ├── requests.html             # Incoming & outgoing exchange proposals
+│   ├── connections.html          # Established student connections & call launchers
+│   ├── chat.html                 # Real-time Firestore messaging interface
+│   ├── profile.html              # Student profile management & verification status
+│   ├── admin-login.html          # Administrator login portal
+│   ├── admin.html                # Administrator moderation & certificate review console
+│   ├── manifest.json             # PWA web app manifest
+│   ├── service-worker.js         # Service worker for offline shell caching
 │   ├── css/
-│   │   ├── style.css        # Theme variables, glassmorphism, navbar, toasts, modals
-│   │   ├── auth.css         # Auth cards, floating accents, validation layouts
-│   │   ├── dashboard.css    # Metrics cards, user cards, filter toolbar
-│   │   └── chat.css         # Message bubbles, WebRTC call modals, video stream
-│   │
+│   │   ├── style.css             # Core design system, glassmorphism, buttons, navbar
+│   │   ├── auth.css              # Authentication card and input styles
+│   │   ├── dashboard.css         # Dashboard grid, metric cards, user cards
+│   │   └── chat.css              # Real-time chat bubbles and WebRTC call modal
 │   ├── js/
-│   │   ├── api.js           # Central API client, session management, toast alerts
-│   │   ├── firebase-config.js # Client-side Firebase configuration template & helpers
-│   │   ├── auth.js          # Client auth forms, validation, login/register flow
-│   │   ├── dashboard.js     # Metric counters, partner recommendations
-│   │   ├── skills.js        # Search filters, skill posting forms
-│   │   ├── requests.js      # Accept / Reject / Cancel exchange proposals
-│   │   ├── connections.js   # Peer connection directory & call launchers
-│   │   ├── chat.js          # Real-time messaging with 3s polling (fixed field keys)
-│   │   ├── calls.js         # Browser WebRTC video & audio media stream capture
-│   │   ├── profile.js       # Profile rendering and updates
-│   │   └── admin.js         # Admin statistics & certificate verification handlers
-│   │
-│   └── assets/
-│       ├── logo.svg         # Modern vector logo
-│       └── avatar-default.svg# Default user avatar
+│   │   ├── firebase-config.js    # Firebase Web SDK initialization (talent-exchange-b8827)
+│   │   ├── firebase-auth.js      # Authentication service (UID, register, login, session)
+│   │   ├── firebase-db.js        # Cloud Firestore database layer (all collections & seeder)
+│   │   ├── firebase-storage.js   # Cloud Storage uploads (videos, certificates, avatars)
+│   │   ├── api.js                # Central client utilities, modals, navbar renderer, toasts
+│   │   ├── auth.js               # Login and registration form controllers
+│   │   ├── dashboard.js          # Dashboard live data and recommendations controller
+│   │   ├── skills.js             # Find skills and offer skill form controllers
+│   │   ├── requests.js           # Proposal acceptance and rejection logic
+│   │   ├── connections.js        # Connections list and profile viewers
+│   │   ├── chat.js               # Firestore onSnapshot messaging engine
+│   │   ├── calls.js              # WebRTC camera, mic, and call modal logic
+│   │   └── admin.js              # Admin verification queue & analytics controller
+│   └── assets/                   # SVG logos and default user avatars
 │
-└── README.md
+├── docs/                         # Synchronized mirror for GitHub Pages deployment
+├── public/                       # Synchronized mirror for Firebase Hosting
+├── firestore.rules               # Cloud Firestore security rules
+├── storage.rules                 # Firebase Cloud Storage security rules
+├── firestore.indexes.json        # Firestore composite indexes
+├── firebase.json                 # Firebase Hosting & Firestore configuration
+├── .firebaserc                   # Firebase project binding (talent-exchange-b8827)
+└── README.md                     # Documentation
 ```
 
 ---
 
-## 🗄️ Database Tables (PostgreSQL)
+## 🚀 How to Run Locally
 
-The database schema is defined in `backend/database.py` with foreign keys, cascading deletes, and indexes:
+Because the platform uses direct client-to-Firebase communication, no local database or backend compilation is needed:
 
-1. **`users`**:
-   - `id` (SERIAL PRIMARY KEY)
-   - `name` VARCHAR(100) NOT NULL
-   - `email` VARCHAR(150) UNIQUE NOT NULL
-   - `password_hash` VARCHAR(255) NOT NULL *(never returned by API)*
-   - `department` VARCHAR(100)
-   - `semester` VARCHAR(50)
-   - `bio` TEXT
-   - `profile_image` TEXT
-   - `certificate_url` TEXT *(uploaded document or external credential URL)*
-   - `verification_status` VARCHAR(50) DEFAULT 'unverified' ('unverified', 'pending', 'verified', 'rejected')
-   - `is_verified` INTEGER DEFAULT 0 *(1 = Verified Mentor 🛡️)*
-   - `role` VARCHAR(20) DEFAULT 'student'
-   - `created_at` TIMESTAMP
+1. **Serve the files with any static HTTP server**:
+   ```bash
+   # Using Python 3
+   cd frontend
+   python -m http.server 8000
+   ```
+   *or*
+   ```bash
+   # Using Node.js npx serve
+   npx serve frontend
+   ```
 
-2. **`skills`**:
-   - `id` (SERIAL PRIMARY KEY)
-   - `user_id` INTEGER REFERENCES users(id) ON DELETE CASCADE
-   - `skill_name` VARCHAR(100) NOT NULL
-   - `skill_category` VARCHAR(100)
-   - `skill_level` VARCHAR(50) ('Beginner', 'Intermediate', 'Advanced')
-   - `learning_skill` VARCHAR(100)
-   - `description` TEXT
-   - `video_url` TEXT *(teaching demonstration video)*
-   - `certificate_url` TEXT *(proof certificate document)*
-   - `certificate_title` VARCHAR(200) *(e.g. AWS Certified Developer, PCAP Python)*
-   - `verification_status` VARCHAR(50) DEFAULT 'unverified'
-   - `is_verified` INTEGER DEFAULT 0
-   - `created_at` TIMESTAMP
-
-3. **`exchange_requests`**:
-   - `id` (SERIAL PRIMARY KEY)
-   - `sender_id` INTEGER REFERENCES users(id) ON DELETE CASCADE
-   - `receiver_id` INTEGER REFERENCES users(id) ON DELETE CASCADE
-   - `offered_skill` VARCHAR(100) NOT NULL
-   - `requested_skill` VARCHAR(100) NOT NULL
-   - `status` VARCHAR(20) DEFAULT 'Pending' ('Pending', 'Accepted', 'Rejected', 'Cancelled')
-   - `created_at`, `updated_at` TIMESTAMP
-
-4. **`connections`**:
-   - `id` (SERIAL PRIMARY KEY)
-   - `user1_id` INTEGER REFERENCES users(id) ON DELETE CASCADE
-   - `user2_id` INTEGER REFERENCES users(id) ON DELETE CASCADE
-   - `created_at` TIMESTAMP
-   - `CONSTRAINT unique_connection UNIQUE (user1_id, user2_id)`
-
-5. **`messages`**:
-   - `id` (SERIAL PRIMARY KEY)
-   - `sender_id` INTEGER REFERENCES users(id) ON DELETE CASCADE
-   - `receiver_id` INTEGER REFERENCES users(id) ON DELETE CASCADE
-   - `message` TEXT NOT NULL
-   - `is_read` BOOLEAN DEFAULT FALSE
-   - `created_at` TIMESTAMP
-
-6. **`notifications`**:
-   - `id` (SERIAL PRIMARY KEY)
-   - `user_id` INTEGER REFERENCES users(id) ON DELETE CASCADE
-   - `type` VARCHAR(50)
-   - `message` TEXT
-   - `is_read` BOOLEAN DEFAULT FALSE
-   - `created_at` TIMESTAMP
+2. **Open in browser**:
+   Navigate to `http://localhost:8000` (or double-click `run-local.bat`).
 
 ---
 
-## 🌐 API Endpoints
+## 🌐 How to Deploy to GitHub Pages
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/` | API status check |
-| `POST` | `/api/upload` | Upload multipart media (videos `.mp4`, `.webm`; certificates `.pdf`, `.png`, `.jpg`) |
-| `POST` | `/api/verify-certificate` | Review & verify skill certificates; grants `Verified Mentor 🛡️` badge |
-| `POST` | `/api/register` | Create student account (with optional certificate credential) |
-| `POST` | `/api/login` | Authenticate student and obtain profile with verification state |
-| `POST` | `/api/logout` | Clear session |
-| `GET` | `/api/users` | Search students (`?q=`, `?skill=`, `?department=`, `?only_verified=true`, `?exclude_user_id=`) |
-| `GET` | `/api/profile/<id>` | Fetch profile with video, certificate, and verification status |
-| `PUT` | `/api/profile/<id>` | Update profile details, video demo, and certificate credentials |
-| `POST` | `/api/skills` | Add or update student skill with video & certificate |
-| `GET` | `/api/skills/<user_id>` | Get all skills for a user |
-| `POST` | `/api/requests` | Propose an exchange (`sender_id`, `receiver_id`, `offered_skill`, `requested_skill`) |
-| `GET` | `/api/requests` | List user requests (`?user_id=X&type=incoming\|outgoing\|all`) |
-| `PUT` | `/api/requests/<id>` | Update request (`Accepted`, `Rejected`, `Cancelled`). Creates connection on `Accepted`. |
-| `GET` | `/api/connections` | Get all connected peers for user (`?user_id=X`) |
-| `POST` | `/api/messages` | Send a chat message (`sender_id`, `receiver_id`, `message`) |
-| `GET` | `/api/messages/<other_id>` | Fetch conversation history (`?current_user_id=X`) |
-| `GET` | `/api/notifications` | Get unread & recent notifications (`?user_id=X`) |
-| `POST` | `/api/notifications/read-all` | Mark all user notifications as read |
-| `GET` | `/api/stats` | Platform statistics (Students, Skills, Exchanges, Connections) |
-| `GET` | `/api/firebase-status` | Check live Firebase Firestore & Storage connectivity |
-| `GET` | `/api/admin/overview` | Admin metric counters (Total users, skills, verified, pending) |
-| `GET` | `/api/admin/verifications` | Admin list of student skill certificate submissions |
-| `GET` | `/api/admin/users` | Admin student & staff directory with skill/connection counts |
-| `DELETE` | `/api/admin/users/<id>` | Admin remove student account |
-
----
-
-## 🚀 Running Locally
-
-### Step 1: Start Backend
-```bash
-cd backend
-python -m pip install -r requirements.txt
-python app.py
-```
-Backend will start on `http://localhost:5000`. It automatically initializes the schema and seeds two demonstration student accounts:
-- **Student A**: `mahadev@talentexchange.edu` / `Password123!` (Offers Python, Seeks Guitar)
-- **Student B**: `rahul@talentexchange.edu` / `Password123!` (Offers Guitar, Seeks Python)
-
-### Step 2: Run Automated Tests
-```bash
-cd backend
-python test_api.py
-```
-Verifies registration, validation, exchange flow, chat, and stats.
-
-### Step 3: Launch Frontend
-Serve the `frontend/` folder with any web server (or Python's built-in HTTP server):
-```bash
-cd frontend
-python -m http.server 8000
-```
-Open `http://localhost:8000` in your web browser.
-
----
-
-## 🚢 Deployment Guide
-
-### A. Deploy Backend to Render
-1. Create a **Web Service** on [Render](https://render.com).
-2. Connect your Git repository containing the `talent-exchange` project.
-3. Configure the service:
-   - **Root Directory**: `backend`
-   - **Environment**: `Python 3`
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn app:app`
-4. Create a **PostgreSQL Database** on Render.
-5. In your Web Service **Environment Variables**, add:
-   - `DATABASE_URL` = `<Render Internal/External Database URL>`
-6. Deploy! Render will publish the backend at:
-   `https://talent-exchange-backend-p5wq.onrender.com`
-
-### B. Deploy Frontend to GitHub Pages
-1. Push the contents of `frontend/` to your GitHub repository (e.g. `govardhan1305/talent-exchange`).
-2. In GitHub: go to **Settings** → **Pages**.
-3. Under **Build and deployment**:
-   - Source: **Deploy from a branch**
-   - Branch: `main` (or `gh-pages`), folder: `/` (or `/frontend` if deployed from repo root).
-4. Save. GitHub Pages will publish the frontend at:
-   `https://govardhan1305.github.io/talent-exchange/`
-5. The frontend will automatically detect that the hostname is not localhost and route all API calls to the Render production backend!
+1. **Repository Configuration**:
+   - Push your code to your GitHub repository: `https://github.com/varun23606-blip/talent-exchange1`
+2. **Enable GitHub Pages**:
+   - In GitHub: navigate to **Settings** → **Pages**.
+   - Under **Build and deployment**:
+     - **Source**: `Deploy from a branch`
+     - **Branch**: `main`, Folder: `/docs` (or `/` if deploying from root).
+   - Click **Save**.
+3. **Live URL**:
+   - GitHub Pages will publish your site instantly at your repository URL:
+     `https://varun23606-blip.github.io/talent-exchange1/`
+   - All authentication, Firestore database operations, and file storage will run directly against Firebase without requiring any backend server!
 
 ---
 
 ## 🧪 Testing the Complete User Flow
 
-1. **Login as Mahadev**:
-   - Go to `login.html`.
-   - Email: `mahadev@talentexchange.edu`, Password: `Password123!`.
-   - You will land on `dashboard.html`.
-2. **Find Rahul**:
-   - Navigate to `find-skills.html`.
-   - Search for `Guitar`. You will see Rahul Sharma.
-   - Click **Request Exchange**.
-   - Your offered skill `Python` and requested skill `Guitar` are pre-filled.
-   - Click **Send Request**.
-3. **Login as Rahul in a second window / Incognito tab**:
-   - Login with `rahul@talentexchange.edu` / `Password123!`.
-   - Notice the notification badge 🔔 in the navbar.
-   - Navigate to `requests.html` (or view Pending Requests on Dashboard).
-   - Click **Accept Exchange**.
-4. **Chat & WebRTC Connection**:
-   - Both users will now see each other on `connections.html`.
-   - Click **Open Chat**.
-   - Send messages in real time! Messages appear instantly and persist to the database.
-   - Click **Video Call** or **Audio Call** above the chat window.
-   - The browser will prompt for camera and microphone permissions and render the real-time local video feed with mute/unmute and camera toggles!
-5. **Teaching Demo Video & Verified Mentor Certificate**:
-   - Navigate to `offer-skill.html` or `profile.html`.
-   - Upload a teaching demonstration video or provide a video URL to show students how you explain concepts.
-   - Upload a certificate document (PDF, PNG, JPG) or Credly URL and add a certificate title (e.g. *PCAP – Certified Associate in Python Programming*).
-   - Once verified (or simulated via **Verify My Certificate Now** on `profile.html`), your profile and skill cards gain the **🛡️ Verified Mentor** badge.
-   - In `find-skills.html`, other students can check the **🛡️ Verified Mentors** filter, click **▶ Watch Teaching Video** to preview your teaching style in an embedded modal player, or click **📜 View Certificate** to verify your credentials before proposing an exchange!
+### 1. Pre-configured Demo Accounts
+The platform includes built-in demo profiles that seed into Firestore automatically:
+
+| Role | Name | Email | Password | Primary Skill |
+| :--- | :--- | :--- | :--- | :--- |
+| **Admin** | System Administrator | `admin@talentexchange.edu` | `Admin123!` | Platform Moderation |
+| **Student** | Mahadev Patel | `mahadev@talentexchange.edu` | `Password123!` | Python (Teaches) / Guitar (Wants) |
+| **Student** | Rahul Sharma | `rahul@talentexchange.edu` | `Password123!` | Guitar (Teaches) / Python (Wants) |
+| **Student** | Ananya Iyer | `ananya@talentexchange.edu` | `Password123!` | UI/UX Design (Teaches) |
+
+### 2. Verified Mentorship Flow (Mahadev → Rahul)
+1. **Sign in as Mahadev**:
+   - Go to `login.html`, sign in with `mahadev@talentexchange.edu` / `Password123!`.
+   - On `dashboard.html`, review your offered skill (Python) and wanted skill (Guitar).
+2. **Propose Exchange**:
+   - Go to `find-skills.html`.
+   - Search for **"Guitar"** to find **Rahul Sharma** (with verified badge 🛡️ and teaching video).
+   - Click **▶ Watch Teaching Video** to preview Rahul playing acoustic guitar in the modal player.
+   - Click **📜 View Certificate** to inspect his Trinity College credential.
+   - Click **🤝 Request Exchange**, verify the offered and requested skills, and click **Send Proposal**.
+3. **Accept Proposal as Rahul**:
+   - Open an Incognito window, go to `login.html`, and sign in as `rahul@talentexchange.edu` / `Password123!`.
+   - Check the notification bell 🔔 in the navbar.
+   - Go to `requests.html`, locate Mahadev's proposal, and click **Accept Exchange**.
+4. **Real-time Messaging**:
+   - Navigate to `connections.html` or `chat.html`.
+   - Select Mahadev from the contacts list and send a message.
+   - The message delivers in real time via Firestore `onSnapshot` listeners.
+5. **WebRTC Local Preview**:
+   - Click **📹 Video Call** in the chat header.
+   - Browser prompts for camera and microphone access.
+   - The screen shows the live camera feed with **"Local Preview Active (Waiting for peer)"**, mic mute toggle, and camera toggle.
+6. **Admin Certificate Verification**:
+   - Go to `admin-login.html`, sign in with `admin@talentexchange.edu` / `Admin123!`.
+   - In `admin.html`, review live statistics (Students, Skills, Verified Mentors, Pending Review, Connections, Exchanges).
+   - In the **Mentor Skill Certificate Verifications** table, inspect student submissions, preview their certificates and videos, and click **✅ Approve** or **❌ Reject**.
+   - Approving updates Firestore, awards the student the `🛡️ Verified Mentor` badge, and sends an in-app notification.
+
+---
+
+## 🔒 Security & Privacy
+
+- **Firebase Authentication**: User identity is verified on every request using Auth UID. Passwords are never stored in Firestore or localStorage.
+- **Firestore Security Rules**: Configured in `firestore.rules` to prevent unauthorized role escalation, protect private conversation messages, and restrict certificate verification to administrators.
+- **Cloud Storage Security Rules**: Configured in `storage.rules` to ensure students can only upload and modify media in their own UID folders (`teaching-videos/{uid}/`, `certificates/{uid}/`).

@@ -1,34 +1,8 @@
 import os
 import sqlite3
-from urllib.parse import urlparse
 from werkzeug.security import generate_password_hash
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-_postgres_disabled = False
-
-def is_postgres():
-    global _postgres_disabled
-    if _postgres_disabled:
-        return False
-    return bool(DATABASE_URL and (DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://")))
-
 def get_connection():
-    global _postgres_disabled
-    if is_postgres():
-        try:
-            import psycopg2
-            import psycopg2.extras
-            url = DATABASE_URL
-            if url.startswith("postgres://"):
-                url = url.replace("postgres://", "postgresql://", 1)
-            conn = psycopg2.connect(url, sslmode="prefer", connect_timeout=3)
-            return conn
-        except Exception as err:
-            print(f"[Database Notice]: PostgreSQL connection failed ({err}). Disabling PostgreSQL and using embedded SQLite database.")
-            _postgres_disabled = True
-            init_sqlite_db()
-
-    # SQLite fallback
     db_path = os.path.join(os.path.dirname(__file__), "talent_exchange.db")
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -36,18 +10,10 @@ def get_connection():
     return conn
 
 def execute_query(query, params=None, fetchone=False, fetchall=False, commit=False):
-    global _postgres_disabled
     params = params or ()
     conn = get_connection()
-    is_pg = is_postgres()
-    
-    if is_pg:
-        import psycopg2.extras
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        adapted_query = query.replace("?", "%s")
-    else:
-        cursor = conn.cursor()
-        adapted_query = query
+    cursor = conn.cursor()
+    adapted_query = query
 
     try:
         cursor.execute(adapted_query, params)

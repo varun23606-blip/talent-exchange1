@@ -1,9 +1,10 @@
 /* ==========================================================================
-   TALENT EXCHANGE - AUTHENTICATION LOGIC (LOGIN & REGISTER)
+   TALENT EXCHANGE - AUTHENTICATION CONTROLLER (LOGIN & REGISTRATION)
+   Powered by Firebase Authentication & Cloud Firestore
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // If already logged in, redirect to appropriate portal
+  // If already authenticated, redirect to appropriate portal
   if (isAuthenticated() && (window.location.pathname.endsWith("login.html") || window.location.pathname.endsWith("register.html") || window.location.pathname.endsWith("admin-login.html"))) {
     const user = getCurrentUser();
     window.location.href = (user && user.role === "admin") ? "admin.html" : "dashboard.html";
@@ -28,6 +29,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Teaching video file selection indicator
+  const regVideoFile = document.getElementById("reg-video-file");
+  const regVideoStatus = document.getElementById("reg-video-status");
+  if (regVideoFile && regVideoStatus) {
+    regVideoFile.addEventListener("change", () => {
+      if (regVideoFile.files && regVideoFile.files[0]) {
+        regVideoStatus.textContent = `✓ Selected: ${regVideoFile.files[0].name} (${(regVideoFile.files[0].size / (1024 * 1024)).toFixed(2)} MB)`;
+        regVideoStatus.style.display = "block";
+      } else {
+        regVideoStatus.style.display = "none";
+      }
+    });
+  }
+
   // Certificate input feedback
   const regCertFile = document.getElementById("reg-cert-file");
   const regCertStatus = document.getElementById("reg-cert-status");
@@ -42,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Handle Login Form
+  // Handle Student Login Form
   const loginForm = document.getElementById("login-form");
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
@@ -66,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (res.success && res.data) {
           setCurrentUser(res.data);
           const isAdm = res.data.role === "admin";
-          showToast(isAdm ? "Welcome Administrator! Redirecting to Admin Console..." : "Welcome back! Redirecting...", "success");
+          showToast(isAdm ? "Welcome Administrator! Redirecting to Admin Console..." : "Welcome back! Redirecting to dashboard...", "success");
           setTimeout(() => {
             window.location.href = isAdm ? "admin.html" : "dashboard.html";
           }, 600);
@@ -75,13 +90,13 @@ document.addEventListener("DOMContentLoaded", () => {
           setLoading(submitBtn, false);
         }
       } catch (err) {
-        showError(err.message || "Login failed. Please try again.");
+        showError(err.message || "Login failed. Please check your credentials.");
         setLoading(submitBtn, false);
       }
     });
   }
 
-  // Handle Register Form
+  // Handle Registration Form
   const registerForm = document.getElementById("register-form");
   if (registerForm) {
     registerForm.addEventListener("submit", async (e) => {
@@ -94,21 +109,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const email = document.getElementById("reg-email").value.trim();
       const password = document.getElementById("reg-password").value;
       const confirmPassword = document.getElementById("reg-confirm-password").value;
-      const department = document.getElementById("reg-dept").value.trim();
-      const semester = document.getElementById("reg-semester").value.trim();
+      const department = document.getElementById("reg-dept") ? document.getElementById("reg-dept").value.trim() : "";
+      const semester = document.getElementById("reg-semester") ? document.getElementById("reg-semester").value.trim() : "";
       const teachSkill = document.getElementById("reg-teach-skill").value.trim();
       const learnSkill = document.getElementById("reg-learn-skill").value.trim();
-      const bio = document.getElementById("reg-bio").value.trim();
-      const profileImage = document.getElementById("reg-image").value.trim();
+      const bio = document.getElementById("reg-bio") ? document.getElementById("reg-bio").value.trim() : "";
+      const profileImage = document.getElementById("reg-image") ? document.getElementById("reg-image").value.trim() : "";
 
-      if (!name || !email || !password || !confirmPassword) {
+      if (!name || !email || !password || !confirmPassword || !teachSkill || !learnSkill) {
         showError("Please fill out all required fields.");
         return;
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        showError("Please enter a valid email address.");
+        showError("Please enter a valid student email address.");
         return;
       }
 
@@ -122,22 +137,39 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const certTitle = document.getElementById("reg-cert-title") ? document.getElementById("reg-cert-title").value.trim() : "";
-      let certUrl = document.getElementById("reg-cert-url") ? document.getElementById("reg-cert-url").value.trim() : "";
-      const certFileInput = document.getElementById("reg-cert-file");
-
       setLoading(submitBtn, true);
 
       try {
+        let certUrl = document.getElementById("reg-cert-url") ? document.getElementById("reg-cert-url").value.trim() : "";
+        const certTitle = document.getElementById("reg-cert-title") ? document.getElementById("reg-cert-title").value.trim() : "";
+        const certFileInput = document.getElementById("reg-cert-file");
+
+        let videoUrl = document.getElementById("reg-video-url") ? document.getElementById("reg-video-url").value.trim() : "";
+        const videoFileInput = document.getElementById("reg-video-file");
+
+        // Upload certificate if provided
         if (certFileInput && certFileInput.files && certFileInput.files[0]) {
           try {
-            showToast("Uploading certificate file...", "info");
+            showToast("Uploading certificate file to Firebase Storage...", "info");
             const uploadRes = await api.upload(certFileInput.files[0], "certificate");
-            if (uploadRes && uploadRes.success && uploadRes.url) {
+            if (uploadRes && uploadRes.url) {
               certUrl = uploadRes.url;
             }
           } catch (uploadErr) {
             console.warn("Certificate upload notice:", uploadErr);
+          }
+        }
+
+        // Upload video if provided
+        if (videoFileInput && videoFileInput.files && videoFileInput.files[0]) {
+          try {
+            showToast("Uploading teaching video to Firebase Storage...", "info");
+            const vRes = await api.upload(videoFileInput.files[0], "video");
+            if (vRes && vRes.url) {
+              videoUrl = vRes.url;
+            }
+          } catch (vErr) {
+            console.warn("Video upload notice:", vErr);
           }
         }
 
@@ -150,15 +182,18 @@ document.addEventListener("DOMContentLoaded", () => {
           teach_skill: teachSkill,
           learn_skill: learnSkill,
           bio,
-          profile_image: profileImage,
+          profile_image: profileImage || "assets/avatar-default.svg",
+          video_url: videoUrl,
           certificate_url: certUrl,
-          certificate_title: certTitle
+          certificate_title: certTitle,
+          verification_status: certUrl ? "pending" : "unverified",
+          is_verified: false
         };
 
         const res = await api.post("/api/register", payload);
         if (res.success && res.data) {
           setCurrentUser(res.data);
-          showToast("Account created successfully! Redirecting...", "success");
+          showToast("Profile created successfully! Redirecting...", "success");
           setTimeout(() => {
             window.location.href = "dashboard.html";
           }, 800);
@@ -167,7 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
           setLoading(submitBtn, false);
         }
       } catch (err) {
-        showError(err.message || "Registration failed. Please check inputs.");
+        showError(err.message || "Registration failed. Please try again.");
         setLoading(submitBtn, false);
       }
     });

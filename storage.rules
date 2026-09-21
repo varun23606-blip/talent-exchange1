@@ -1,0 +1,58 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. Teaching Demonstration Videos
+    match /teaching-videos/{userId}/{fileName} {
+      // Anyone can stream/view teaching demonstration videos to preview mentorship
+      allow read: if true;
+
+      // Only the authenticated student can upload/replace their own teaching video (≤ 50MB, video formats)
+      allow write: if isOwner(userId) &&
+        request.resource.size < 50 * 1024 * 1024 &&
+        (request.resource.contentType.matches('video/.*') || fileName.matches('.*\\.(mp4|webm|ogg|mov)'));
+
+      allow delete: if isOwner(userId);
+    }
+
+    // 2. Skill Certificates
+    match /certificates/{userId}/{fileName} {
+      // Public/peer viewing of certificates for verified transparency
+      allow read: if true;
+
+      // Only the user can upload their certificate document (≤ 15MB, docs & images)
+      allow write: if isOwner(userId) &&
+        request.resource.size < 15 * 1024 * 1024 &&
+        (request.resource.contentType.matches('image/.*') || 
+         request.resource.contentType == 'application/pdf' ||
+         fileName.matches('.*\\.(pdf|png|jpg|jpeg|webp)'));
+
+      allow delete: if isOwner(userId);
+    }
+
+    // 3. Profile Images
+    match /profile-images/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+      allow delete: if isOwner(userId);
+    }
+
+    // Default fallback
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+  }
+}

@@ -1,5 +1,6 @@
 /* ==========================================================================
-   TALENT EXCHANGE - DASHBOARD LOGIC
+   TALENT EXCHANGE - DASHBOARD CONTROLLER
+   Powered by Cloud Firestore & Firebase Realtime Data
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -8,14 +9,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const user = getCurrentUser();
 
-  // Set personalized welcome
+  // Personalized greeting
   const welcomeName = document.getElementById("welcome-user-name");
-  if (welcomeName) welcomeName.textContent = user.name;
+  if (welcomeName) welcomeName.textContent = user.name || "Student";
 
   const welcomeBadge = document.getElementById("welcome-verified-badge");
   if (welcomeBadge) {
     if (user.is_verified) {
-      welcomeBadge.innerHTML = `<span class="badge badge-verified" title="Verified Skill Mentor">🛡️ Verified Mentor</span>`;
+      welcomeBadge.innerHTML = `<span class="badge badge-verified" title="Certified & Verified Mentor">🛡️ Verified Mentor</span>`;
     } else if (user.verification_status === "pending" || user.certificate_url) {
       welcomeBadge.innerHTML = `<span class="badge badge-pending">⏳ Verification Pending</span>`;
     } else {
@@ -26,13 +27,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Metric fields
   const mySkillEl = document.getElementById("metric-my-skill");
   const learningSkillEl = document.getElementById("metric-learning-skill");
-  const connCountEl = document.getElementById("metric-connections-count");
-  const reqCountEl = document.getElementById("metric-requests-count");
-
   if (mySkillEl) mySkillEl.textContent = user.teach_skill || "Not configured";
   if (learningSkillEl) learningSkillEl.textContent = user.learn_skill || "Not configured";
 
-  // Load backend dashboard data
+  // Load backend dashboard data from Firestore
   await loadDashboardMetrics(user);
   await loadRecommendedPartners(user);
   await loadPendingRequests(user);
@@ -44,9 +42,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadDashboardMetrics(user) {
   try {
+    const uid = user.id || user.uid;
     const [connsRes, reqsRes] = await Promise.all([
-      api.get(`/api/connections?user_id=${user.id}`),
-      api.get(`/api/requests?user_id=${user.id}&type=incoming`)
+      api.get(`/api/connections?user_id=${uid}`),
+      api.get(`/api/requests?user_id=${uid}`)
     ]);
 
     const connCountEl = document.getElementById("metric-connections-count");
@@ -69,7 +68,8 @@ async function loadRecommendedPartners(user) {
   if (!container) return;
 
   try {
-    const res = await api.get(`/api/users?exclude_user_id=${user.id}`);
+    const uid = user.id || user.uid;
+    const res = await api.get(`/api/users?exclude_user_id=${uid}`);
     const users = (res && res.data) ? res.data : [];
 
     if (users.length === 0) {
@@ -77,13 +77,13 @@ async function loadRecommendedPartners(user) {
         <div class="empty-state" style="grid-column: 1 / -1;">
           <div class="empty-icon">👥</div>
           <div class="empty-title">No other students found yet</div>
-          <div class="empty-desc">Share Talent Exchange with your classmates to build the network!</div>
+          <div class="empty-desc">Share Talent Exchange with your classmates to expand the network!</div>
         </div>
       `;
       return;
     }
 
-    // Sort by recommendation match (matching skills they offer with what current user wants to learn)
+    // Sort by recommendation match
     const myWanted = (user.learn_skill || "").toLowerCase();
     const sorted = [...users].sort((a, b) => {
       const aMatch = myWanted && (a.teach_skill || "").toLowerCase().includes(myWanted) ? 1 : 0;
@@ -110,6 +110,7 @@ function createUserCard(u, currentUser) {
   const isVerified = Boolean(u.is_verified);
   const hasVideo = Boolean(u.video_url);
   const hasCert = Boolean(u.certificate_url);
+  const userId = u.id || u.uid;
 
   return `
     <div class="user-card">
@@ -153,7 +154,7 @@ function createUserCard(u, currentUser) {
       <p class="user-card-bio">${u.bio || 'Ready to exchange skills and collaborate with fellow students.'}</p>
       <div class="user-card-actions">
         <button class="btn btn-primary btn-sm btn-request-exchange" 
-          data-user-id="${u.id}" 
+          data-user-id="${userId}" 
           data-user-name="${u.name}" 
           data-teach-skill="${u.teach_skill || ''}" 
           data-learn-skill="${u.learn_skill || ''}">
@@ -169,7 +170,8 @@ async function loadPendingRequests(user) {
   if (!container) return;
 
   try {
-    const res = await api.get(`/api/requests?user_id=${user.id}&type=incoming`);
+    const uid = user.id || user.uid;
+    const res = await api.get(`/api/requests?user_id=${uid}`);
     const requests = (res && res.data && res.data.incoming) ? res.data.incoming : [];
     const pending = requests.filter(r => r.status === "Pending");
 
@@ -241,7 +243,8 @@ async function loadRecentConnections(user) {
   if (!container) return;
 
   try {
-    const res = await api.get(`/api/connections?user_id=${user.id}`);
+    const uid = user.id || user.uid;
+    const res = await api.get(`/api/connections?user_id=${uid}`);
     const conns = (res && res.data) ? res.data : [];
 
     if (conns.length === 0) {
@@ -287,7 +290,6 @@ function bindExchangeButtons(currentUser) {
       document.getElementById("modal-receiver-id").value = targetUserId;
       document.getElementById("modal-receiver-name").textContent = targetUserName;
       
-      // Default offered skill is my current teach skill
       const offerInput = document.getElementById("modal-offered-skill");
       const requestInput = document.getElementById("modal-requested-skill");
 
@@ -304,7 +306,6 @@ function setupExchangeModal(currentUser) {
   const modal = document.getElementById("exchange-modal");
   if (!form || !modal) return;
 
-  // Close triggers
   modal.querySelectorAll(".modal-close, .modal-cancel").forEach(b => {
     b.addEventListener("click", () => closeModal("exchange-modal"));
   });
@@ -325,8 +326,8 @@ function setupExchangeModal(currentUser) {
 
     try {
       const payload = {
-        sender_id: currentUser.id,
-        receiver_id: parseInt(receiverId, 10),
+        sender_id: currentUser.id || currentUser.uid,
+        receiver_id: receiverId,
         offered_skill: offeredSkill,
         requested_skill: requestedSkill
       };
