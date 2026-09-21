@@ -44,3 +44,12 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+
+# Firebase Private Keys & Secrets (Never commit credentials)
+serviceAccountKey.json
+*serviceAccountKey*.json
+backend/serviceAccountKey.json
+
+# Test upload artifacts
+*sample_cert*
+frontend/uploads/*sample_cert*

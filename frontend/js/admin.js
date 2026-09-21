@@ -72,6 +72,29 @@ async function loadOverviewMetrics() {
   } catch (err) {
     console.error("Failed to load admin overview metrics:", err);
   }
+
+  // Update Firebase connection status badge
+  try {
+    const fbRes = await api.getFirebaseStatus();
+    const badge = document.getElementById("firebase-status-badge");
+    if (badge && fbRes) {
+      const isLive = fbRes.is_live || (fbRes.data && fbRes.data.is_live);
+      if (isLive) {
+        badge.innerHTML = `🔥 Firebase: Live (Firestore & Storage)`;
+        badge.style.color = "#34d399";
+        badge.style.borderColor = "rgba(52, 211, 153, 0.4)";
+        badge.style.background = "rgba(52, 211, 153, 0.15)";
+      } else {
+        badge.innerHTML = `🔥 Firebase: Local Fallback Mode`;
+        badge.style.color = "#fbbf24";
+        badge.style.borderColor = "rgba(251, 191, 36, 0.4)";
+        badge.style.background = "rgba(251, 191, 36, 0.12)";
+        badge.title = "Ready for serviceAccountKey.json";
+      }
+    }
+  } catch (fbErr) {
+    console.warn("Could not check Firebase status:", fbErr);
+  }
 }
 
 async function loadVerificationsList() {

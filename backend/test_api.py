@@ -213,5 +213,13 @@ class TalentExchangeAPITest(unittest.TestCase):
         self.assertTrue(users_data["success"])
         self.assertTrue(any(u["role"] == "admin" for u in users_data["data"]))
 
+    def test_11_firebase_status(self):
+        res = self.client.get("/api/firebase-status")
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertTrue(data["success"])
+        self.assertIn("status", data)
+        self.assertIn(data["status"], ["connected", "local_dev_fallback", "local_fallback"])
+
 if __name__ == "__main__":
     unittest.main()

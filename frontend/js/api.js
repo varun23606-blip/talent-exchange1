@@ -88,6 +88,10 @@ const api = {
       console.error("[API Upload Error]:", err);
       throw new Error(err.message || "Failed to upload file. Please try again.");
     }
+  },
+
+  async getFirebaseStatus() {
+    return this.get("/api/firebase-status");
   }
 };
 

@@ -1,32 +1,37 @@
 # 🎓 TALENT EXCHANGE
 > **"Learn. Teach. Connect."**
 
-Talent Exchange is a production-style campus peer skill-sharing platform built with a Python Flask REST API, PostgreSQL database architecture, and a modern glassmorphic responsive frontend. Students can offer skills they are proficient in, discover peers who possess the skills they wish to learn, send reciprocal exchange requests, chat in real time, and launch audio/video collaboration sessions.
+Talent Exchange is a production-style campus peer skill-sharing platform powered by a **Firebase** backend (Cloud Firestore NoSQL database, Firebase Cloud Storage for media, and Firebase Admin SDK) with a Python Flask REST API server and a modern glassmorphic responsive frontend. Students can offer skills they are proficient in, discover peers who possess the skills they wish to learn, send reciprocal exchange requests, chat in real time, upload teaching videos and certificates, and launch audio/video collaboration sessions.
 
 ---
 
 ## 🏗️ Architecture Overview
 
 ```
-Frontend (HTML5 / Vanilla JS / CSS3) ───[GitHub Pages / Local]
+Frontend (HTML5 / Vanilla JS / CSS3) ─────── [GitHub Pages / Local Port 8000]
                  │
-                 ▼ (REST JSON / Fetch API)
-Backend (Flask REST API + CORS) ────────[Render Web Service / Local Port 5000]
+                 ▼ (REST JSON / Fetch API via API_BASE_URL)
+Backend (Flask REST API + CORS) ───────────── [Render Web Service / Local Port 5000]
                  │
-                 ▼ (psycopg2 / SQL Relational Schema)
-Database (PostgreSQL / SQLite Fallback)─[Render Managed PostgreSQL]
+                 ▼ (Firebase Admin SDK / Google Cloud)
+Firebase Cloud Services:
+  ├── Cloud Firestore ────────────────────── [Users, Skills, Requests, Connections, Messages]
+  └── Cloud Storage Bucket ───────────────── [Videos (.mp4/.webm), Certificates (.pdf/.jpg)]
+  └── (Auto-fallback to SQLite/local upload if serviceAccountKey.json is not present)
 ```
 
-### Configurable API Base URL
-The frontend uses a single centralized configuration in `frontend/js/api.js`:
+> 📖 **Full Firebase Setup Guide**: For complete step-by-step instructions on creating a Firebase project and generating credentials, see [FIREBASE_SETUP.md](FIREBASE_SETUP.md).
+
+### Configurable API Base URL (Frontend → Backend Connection)
+The frontend connects to the backend through a single centralized configuration in `frontend/js/api.js`:
 ```javascript
 const API_BASE_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5000"
     : "https://talent-exchange-backend-p5wq.onrender.com";
 ```
-- When running locally on `localhost` or `127.0.0.1`, requests automatically route to `http://localhost:5000`.
-- When deployed on GitHub Pages (`https://govardhan1305.github.io/talent-exchange/`), requests automatically route to Render production (`https://talent-exchange-backend-p5wq.onrender.com`).
+- **Local Development**: When running frontend locally, requests route automatically to `http://localhost:5000`.
+- **Production**: When hosted on GitHub Pages or custom domain, requests route automatically to your Render web service backend.
 
 ---
 
@@ -34,17 +39,22 @@ const API_BASE_URL =
 
 ```
 talent-exchange/
+├── FIREBASE_SETUP.md        # Step-by-step Firebase project configuration guide
 ├── backend/
-│   ├── app.py               # Flask REST API endpoints & route logic
-│   ├── database.py          # PostgreSQL / SQLite connection pool & table migration
+│   ├── app.py               # Flask REST API endpoints, CORS & routing logic
+│   ├── firebase_config.py   # Firebase Admin SDK initialization & credentials loader
+│   ├── firebase_db.py       # Cloud Firestore CRUD operations for all collections
+│   ├── serviceAccountKey.json.example # Template for Firebase service account private key
+│   ├── database.py          # Relational engine & local fallback pool
 │   ├── models.py            # Serializers & security sanitizer
-│   ├── requirements.txt     # Python production dependencies
+│   ├── requirements.txt     # Python production dependencies (firebase-admin, Flask, etc.)
 │   ├── Procfile             # Render start command (web: gunicorn app:app)
-│   └── test_api.py          # Automated test suite (8 tests)
+│   └── test_api.py          # Automated test suite (11 tests, 100% passing)
 │
 ├── frontend/
 │   ├── index.html           # Landing page with hero, features, stats, steps
-│   ├── login.html           # Authentication login page
+│   ├── login.html           # Student authentication login page
+│   ├── admin-login.html     # Administrator authentication portal
 │   ├── register.html        # Student registration & skill declaration
 │   ├── dashboard.html       # Personalized student hub & recommendations
 │   ├── find-skills.html     # Real-time search & discovery directory
@@ -53,6 +63,7 @@ talent-exchange/
 │   ├── connections.html     # Active peer network directory
 │   ├── chat.html            # Real-time messaging with live polling
 │   ├── profile.html         # User profile viewer & editor
+│   ├── admin.html           # Admin moderation & certificate verification console
 │   ├── manifest.json        # PWA Web App Manifest
 │   ├── service-worker.js    # PWA Service Worker (Cache-first assets, live network APIs)
 │   │
@@ -64,6 +75,7 @@ talent-exchange/
 │   │
 │   ├── js/
 │   │   ├── api.js           # Central API client, session management, toast alerts
+│   │   ├── firebase-config.js # Client-side Firebase configuration template & helpers
 │   │   ├── auth.js          # Client auth forms, validation, login/register flow
 │   │   ├── dashboard.js     # Metric counters, partner recommendations
 │   │   ├── skills.js        # Search filters, skill posting forms
@@ -71,7 +83,8 @@ talent-exchange/
 │   │   ├── connections.js   # Peer connection directory & call launchers
 │   │   ├── chat.js          # Real-time messaging with 3s polling (fixed field keys)
 │   │   ├── calls.js         # Browser WebRTC video & audio media stream capture
-│   │   └── profile.js       # Profile rendering and updates
+│   │   ├── profile.js       # Profile rendering and updates
+│   │   └── admin.js         # Admin statistics & certificate verification handlers
 │   │
 │   └── assets/
 │       ├── logo.svg         # Modern vector logo
@@ -172,7 +185,13 @@ The database schema is defined in `backend/database.py` with foreign keys, casca
 | `POST` | `/api/messages` | Send a chat message (`sender_id`, `receiver_id`, `message`) |
 | `GET` | `/api/messages/<other_id>` | Fetch conversation history (`?current_user_id=X`) |
 | `GET` | `/api/notifications` | Get unread & recent notifications (`?user_id=X`) |
+| `POST` | `/api/notifications/read-all` | Mark all user notifications as read |
 | `GET` | `/api/stats` | Platform statistics (Students, Skills, Exchanges, Connections) |
+| `GET` | `/api/firebase-status` | Check live Firebase Firestore & Storage connectivity |
+| `GET` | `/api/admin/overview` | Admin metric counters (Total users, skills, verified, pending) |
+| `GET` | `/api/admin/verifications` | Admin list of student skill certificate submissions |
+| `GET` | `/api/admin/users` | Admin student & staff directory with skill/connection counts |
+| `DELETE` | `/api/admin/users/<id>` | Admin remove student account |
 
 ---
 
