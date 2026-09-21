@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offer Your Skill - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container" style="max-width: 800px;">
+    <div class="section-head" style="margin-bottom: 24px;">
+      <div>
+        <h1 style="font-size: 2rem; font-weight: 800;">Offer Your Skill</h1>
+        <p style="color: var(--text-secondary);">Define the expertise you want to share with fellow students</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 36px;">
+      <form id="offer-skill-form">
+        <div class="form-group">
+          <label class="form-label" for="skill-name">Skill Name *</label>
+          <input type="text" id="skill-name" class="form-input" placeholder="e.g. Python, Digital Painting, Guitar, Calculus" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="form-group">
+            <label class="form-label" for="skill-category">Skill Category</label>
+            <select id="skill-category" class="form-select">
+              <option value="Programming & Tech">Programming & Tech</option>
+              <option value="Design & Creative">Design & Creative</option>
+              <option value="Music & Arts">Music & Arts</option>
+              <option value="Academics & Science">Academics & Science</option>
+              <option value="Languages">Languages</option>
+              <option value="Business & Marketing">Business & Marketing</option>
+              <option value="Lifestyle & Fitness">Lifestyle & Fitness</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="skill-level">Proficiency Level</label>
+            <select id="skill-level" class="form-select">
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate" selected>Intermediate</option>
+              <option value="Advanced">Advanced / Expert</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="learning-skill">What You Want to Learn in Exchange *</label>
+          <input type="text" id="learning-skill" class="form-input" placeholder="e.g. Web Development, Acoustic Guitar, Graphic Design" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="skill-desc">What You Can Teach (Detailed Description)</label>
+          <textarea id="skill-desc" class="form-textarea" placeholder="Explain what topics, tools, or concepts you are prepared to walk someone through (e.g. loops, APIs, song chord progressions, Figma auto-layout)..."></textarea>
+        </div>
+
+        <!-- 1. Teaching Demo Video Section -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div>
+              <h3 style="font-size: 1.15rem; font-weight: 700;">🎥 Teaching Demonstration Video</h3>
+              <p style="color: var(--text-secondary); font-size: 0.88rem;">Help learners preview your teaching approach before sending an exchange request.</p>
+            </div>
+            <span class="badge badge-purple">Recommended</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="video-url">Video Link (MP4, WebM, or YouTube/Vimeo)</label>
+            <input type="url" id="video-url" class="form-input" placeholder="https://assets.mixkit.co/... or cloud video URL">
+          </div>
+
+          <div style="text-align: center; color: var(--text-muted); font-size: 0.82rem; margin: -8px 0 10px 0;">— OR UPLOAD VIDEO FILE (MP4, WebM, max 50MB) —</div>
+
+          <div class="file-upload-box" id="video-upload-box">
+            <input type="file" id="video-file-input" accept="video/mp4,video/webm,video/ogg">
+            <label class="file-upload-label" for="video-file-input">
+              <span style="font-size: 1.8rem;">🎬</span>
+              <span>Click to select video file from your computer</span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Supports MP4, WebM (up to 50MB)</span>
+            </label>
+            <div id="video-filename-preview" class="file-name-preview" style="display: none;"></div>
+          </div>
+
+          <!-- Video Preview Player -->
+          <div id="video-preview-wrapper" style="margin-top: 16px; display: none;">
+            <label class="form-label">Video Preview:</label>
+            <div class="video-player-frame">
+              <video id="video-preview-player" controls preload="metadata"></video>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Skill Certificate Verification Section -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div>
+              <h3 style="font-size: 1.15rem; font-weight: 700;">📜 Skill Certificate & Verification</h3>
+              <p style="color: var(--text-secondary); font-size: 0.88rem;">Earn the "Verified Mentor 🛡️" badge by submitting proof of qualification.</p>
+            </div>
+            <span id="cert-status-badge" class="badge badge-amber">Unverified</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cert-title">Certificate Title / Issuing Organization</label>
+            <input type="text" id="cert-title" class="form-input" placeholder="e.g. Google IT Specialist, Trinity Guitar Grade 5, Python PCAP">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cert-url">Certificate Image / PDF Link</label>
+            <input type="url" id="cert-url" class="form-input" placeholder="https://... or certificate credentials link">
+          </div>
+
+          <div style="text-align: center; color: var(--text-muted); font-size: 0.82rem; margin: -8px 0 10px 0;">— OR UPLOAD CERTIFICATE DOCUMENT (PDF, PNG, JPG) —</div>
+
+          <div class="file-upload-box" id="cert-upload-box">
+            <input type="file" id="cert-file-input" accept="application/pdf,image/png,image/jpeg,image/webp">
+            <label class="file-upload-label" for="cert-file-input">
+              <span style="font-size: 1.8rem;">📜</span>
+              <span>Click to select certificate file (PDF, PNG, JPG)</span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Uploaded documents earn verification badges</span>
+            </label>
+            <div id="cert-filename-preview" class="file-name-preview" style="display: none;"></div>
+          </div>
+
+          <!-- Certificate Preview -->
+          <div id="cert-preview-wrapper" style="margin-top: 16px; display: none;">
+            <label class="form-label">Certificate Preview:</label>
+            <div class="cert-preview-frame">
+              <img id="cert-preview-img" src="" alt="Certificate Preview">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+          <a href="dashboard.html" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary btn-lg">
+            💾 Save Skill & Credentials
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Firebase Web SDK (v10.8.0) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/skills.js"></script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container">
+    <!-- Welcome Header Banner -->
+    <section class="welcome-banner">
+      <div class="welcome-text">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;">
+          <h1 style="margin-bottom: 0;">Welcome, <span id="welcome-user-name">Student</span>!</h1>
+          <span id="welcome-verified-badge"></span>
+        </div>
+        <p>Your collaborative skill exchange hub. Discover matches, manage requests, and chat with peers.</p>
+      </div>
+      <div class="welcome-cta">
+        <a href="find-skills.html" class="btn btn-primary">🔍 Find Skill Partners</a>
+        <a href="offer-skill.html" class="btn btn-secondary">💡 Update My Skills</a>
+      </div>
+    </section>
+
+    <!-- Quick Metric Cards -->
+    <section class="grid-metrics">
+      <div class="metric-card">
+        <div class="metric-icon-box metric-icon-purple">🎯</div>
+        <div class="metric-info">
+          <h4>My Skill</h4>
+          <div class="metric-value" id="metric-my-skill">-</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-box metric-icon-indigo">📚</div>
+        <div class="metric-info">
+          <h4>Learning</h4>
+          <div class="metric-value" id="metric-learning-skill">-</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-box metric-icon-emerald">🤝</div>
+        <div class="metric-info">
+          <h4>Connections</h4>
+          <div class="metric-value" id="metric-connections-count">0</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-box metric-icon-amber">📬</div>
+        <div class="metric-info">
+          <h4>Pending Requests</h4>
+          <div class="metric-value" id="metric-requests-count">0</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two-Column Layout -->
+    <div class="dashboard-grid">
+      <!-- Left Column: Recommended Partners -->
+      <div>
+        <div class="section-head">
+          <h2>Recommended Skill Partners</h2>
+          <a href="find-skills.html">Browse all →</a>
+        </div>
+        <div class="grid-users" id="recommended-partners-list">
+          <!-- Populated dynamically -->
+          <div class="skeleton" style="height:220px;border-radius:18px;"></div>
+          <div class="skeleton" style="height:220px;border-radius:18px;"></div>
+        </div>
+      </div>
+
+      <!-- Right Column: Requests & Recent Connections -->
+      <div>
+        <!-- Pending Requests Card -->
+        <div class="section-head">
+          <h2>Pending Exchange Requests</h2>
+          <a href="requests.html">View all →</a>
+        </div>
+        <div id="dashboard-pending-requests" style="margin-bottom: 36px;">
+          <div class="skeleton" style="height:100px;border-radius:12px;margin-bottom:12px;"></div>
+        </div>
+
+        <!-- Recent Connections -->
+        <div class="section-head">
+          <h2>Recent Connections</h2>
+          <a href="connections.html">Directory →</a>
+        </div>
+        <div id="dashboard-connections">
+          <div class="skeleton" style="height:100px;border-radius:12px;margin-bottom:12px;"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Exchange Request Modal -->
+  <div class="modal-backdrop" id="exchange-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Propose Skill Exchange</h3>
+        <button class="modal-close" type="button">&times;</button>
+      </div>
+      <form id="exchange-form">
+        <div class="modal-body">
+          <input type="hidden" id="modal-receiver-id">
+          <p style="margin-bottom:18px;color:var(--text-secondary);">
+            Propose a collaborative exchange with <strong id="modal-receiver-name" style="color:#fff;">Student</strong>:
+          </p>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-offered-skill">Skill You Will Teach</label>
+            <input type="text" id="modal-offered-skill" class="form-input" required placeholder="e.g. Python programming">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-requested-skill">Skill You Want to Learn from Them</label>
+            <input type="text" id="modal-requested-skill" class="form-input" required placeholder="e.g. Guitar chords">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Send Proposal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Firebase Web SDK (v10.8.0) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

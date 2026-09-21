@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/chat.css">
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container" style="padding-top: 16px; padding-bottom: 16px;">
+    <div class="chat-layout">
+      <!-- Left Sidebar: Connected Contacts -->
+      <aside class="chat-sidebar">
+        <div class="chat-sidebar-head">
+          <h2>Conversations</h2>
+        </div>
+        <ul class="chat-contacts-list" id="chat-contacts-list">
+          <li style="padding:20px;text-align:center;color:var(--text-muted);">Loading conversations...</li>
+        </ul>
+      </aside>
+
+      <!-- Right Main Chat Window -->
+      <section class="chat-main">
+        <!-- Top Chat Header -->
+        <header class="chat-header">
+          <div class="chat-header-user" id="chat-header-user">
+            <div style="color: var(--text-secondary);">Select a connection to start chatting</div>
+          </div>
+          <div class="chat-header-actions">
+            <button class="btn btn-secondary btn-sm" id="chat-call-audio" title="Start Audio Call">
+              📞 Audio Call
+            </button>
+            <button class="btn btn-primary btn-sm" id="chat-call-video" title="Start Video Call">
+              📹 Video Call
+            </button>
+          </div>
+        </header>
+
+        <!-- Messages Area -->
+        <div class="chat-messages" id="chat-messages-area">
+          <div class="empty-state" style="margin: auto;">
+            <div class="empty-icon">💬</div>
+            <div class="empty-title">Loading Messages...</div>
+          </div>
+        </div>
+
+        <!-- Bottom Input Area -->
+        <form class="chat-input-area" id="chat-send-form">
+          <input type="text" id="chat-message-input" class="chat-input" placeholder="Type a message..." autocomplete="off">
+          <button type="submit" class="chat-send-btn" title="Send Message">
+            ➤
+          </button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <!-- Firebase Web SDK (v10.8.0) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/calls.js"></script>
+  <script src="js/chat.js"></script>
+</body>
+</html>

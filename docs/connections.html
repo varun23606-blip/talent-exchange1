@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Connections - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/chat.css">
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container">
+    <div class="section-head" style="margin-bottom: 24px;">
+      <div>
+        <h1 style="font-size: 2rem; font-weight: 800;">My Skill Network</h1>
+        <p style="color: var(--text-secondary);">Your accepted student connections. Start a chat or launch a video exchange session.</p>
+      </div>
+      <div>
+        <input type="text" id="search-connections" class="form-input" placeholder="Search connections..." style="width: 260px;">
+      </div>
+    </div>
+
+    <div class="grid-users" id="connections-grid">
+      <div class="skeleton" style="height: 240px; border-radius: 18px;"></div>
+      <div class="skeleton" style="height: 240px; border-radius: 18px;"></div>
+      <div class="skeleton" style="height: 240px; border-radius: 18px;"></div>
+    </div>
+  <!-- Firebase Web SDK (v10.8.0) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/calls.js"></script>
+  <script src="js/connections.js"></script>
+</body>
+</html>

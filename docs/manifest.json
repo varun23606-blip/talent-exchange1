@@ -1,0 +1,17 @@
+﻿{
+  "name": "Talent Exchange",
+  "short_name": "TalentEx",
+  "description": "Exchange Skills. Build Connections. Grow Together.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0B0F19",
+  "theme_color": "#8B5CF6",
+  "icons": [
+    {
+      "src": "assets/logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

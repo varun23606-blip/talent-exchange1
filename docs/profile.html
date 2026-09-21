@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - Talent Exchange</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container">
+    <div class="section-head" style="margin-bottom: 24px;">
+      <div>
+        <h1 style="font-size: 2rem; font-weight: 800;">My Student Profile</h1>
+        <p style="color: var(--text-secondary);">Manage your public persona, academic details, and exchange preferences</p>
+      </div>
+    </div>
+
+    <div class="profile-grid">
+      <!-- Left: Public Profile View Card -->
+      <div class="profile-card-left">
+        <img id="view-avatar" src="assets/avatar-default.svg" class="profile-avatar-large" alt="Profile Avatar" onerror="this.src='assets/avatar-default.svg'">
+        <h2 id="view-name" style="font-size: 1.5rem; font-weight: 800; margin-bottom: 4px;">Student Name</h2>
+        <div id="view-dept" style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 4px;">Department</div>
+        <div id="view-email" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">email@college.edu</div>
+
+        <!-- Verification Badge & Media Buttons -->
+        <div id="view-cert-badge-container" style="margin-bottom: 12px;"></div>
+        <div id="view-media-actions" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px; width: 100%;">
+          <button id="view-watch-video-btn" type="button" class="btn btn-secondary btn-sm" style="display: none; font-size: 0.8rem; padding: 6px 12px;">
+            ▶ Teaching Video
+          </button>
+          <button id="view-cert-btn" type="button" class="btn btn-secondary btn-sm" style="display: none; font-size: 0.8rem; padding: 6px 12px;">
+            📜 View Certificate
+          </button>
+        </div>
+        <div id="verify-now-container" style="margin-bottom: 16px; width: 100%; display: none;">
+          <button id="btn-verify-now" type="button" class="btn btn-primary btn-sm" style="width: 100%; font-size: 0.82rem;">
+            🛡️ Verify My Certificate
+          </button>
+        </div>
+
+        <div style="width: 100%; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px; margin-bottom: 20px; text-align: left;">
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Skill Offered</div>
+            <div id="view-teach" style="font-size: 1.05rem; font-weight: 700; color: var(--primary);">Python</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Skill Wanted</div>
+            <div id="view-learn" style="font-size: 1.05rem; font-weight: 700; color: var(--emerald);">Guitar</div>
+          </div>
+        </div>
+
+        <div style="width: 100%; text-align: left; margin-bottom: 20px;">
+          <div style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; margin-bottom: 6px;">Bio</div>
+          <p id="view-bio" style="font-size: 0.92rem; color: var(--text-primary); line-height: 1.5;"></p>
+        </div>
+
+        <div style="width: 100%; border-top: 1px solid var(--border); padding-top: 16px; display: flex; justify-content: space-around;">
+          <div>
+            <div id="view-conns-count" style="font-size: 1.4rem; font-weight: 800; color: #fff;">0</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">Connections</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Edit Form Card -->
+      <div class="card" style="padding: 36px;">
+        <h3 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 24px;">Edit Profile Information</h3>
+        <form id="profile-edit-form">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+              <label class="form-label" for="edit-name">Full Name</label>
+              <input type="text" id="edit-name" class="form-input" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="edit-image">Profile Photo URL</label>
+              <input type="url" id="edit-image" class="form-input" placeholder="https://images.unsplash.com/...">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="edit-dept">Department / Branch</label>
+              <input type="text" id="edit-dept" class="form-input" placeholder="e.g. Computer Science">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="edit-sem">Semester / Year</label>
+              <input type="text" id="edit-sem" class="form-input" placeholder="e.g. Semester 4">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="edit-teach-skill">Primary Skill Offered</label>
+              <input type="text" id="edit-teach-skill" class="form-input" placeholder="e.g. Python">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="edit-learn-skill">Skill You Want to Learn</label>
+              <input type="text" id="edit-learn-skill" class="form-input" placeholder="e.g. Guitar">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-bio">About Me & Experience</label>
+            <textarea id="edit-bio" class="form-textarea" placeholder="Describe your experience, what you like to teach, and your availability..."></textarea>
+          </div>
+
+          <!-- Teaching Demonstration Video -->
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px; margin-bottom: 20px;">
+            <label class="form-label" style="font-weight: 700; color: #fff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+              🎬 Teaching Demonstration Video
+            </label>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
+              Upload a video demo (MP4, WebM) or provide a URL so exchange partners can see your teaching style.
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <label class="form-label" style="font-size: 0.8rem;">Upload Video File</label>
+                <input type="file" id="edit-video-file" class="form-input" accept="video/mp4,video/webm,video/ogg" style="padding: 8px;">
+              </div>
+              <div>
+                <label class="form-label" for="edit-video-url" style="font-size: 0.8rem;">Or Video URL</label>
+                <input type="url" id="edit-video-url" class="form-input" placeholder="https://... or uploaded file link">
+              </div>
+            </div>
+            <div id="edit-video-status" style="font-size: 0.82rem; color: var(--success); margin-top: 8px; display: none;"></div>
+          </div>
+
+          <!-- Skill Certificate & Verification -->
+          <div style="background: rgba(99, 102, 241, 0.04); border: 1px dashed var(--primary); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label class="form-label" style="font-weight: 700; color: #fff; margin-bottom: 0; display: flex; align-items: center; gap: 6px;">
+                📜 Skill Certificate & Verification
+              </label>
+              <span id="edit-cert-badge-pill" class="badge badge-amber">Unverified</span>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
+              Upload your credential to display the <strong>🛡️ Verified Mentor</strong> badge on your profile and search cards.
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+              <div>
+                <label class="form-label" for="edit-cert-title" style="font-size: 0.8rem;">Certificate Title / Issuer</label>
+                <input type="text" id="edit-cert-title" class="form-input" placeholder="e.g. AWS Certified Solutions Architect, PCAP Python, etc.">
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                  <label class="form-label" style="font-size: 0.8rem;">Upload Certificate File</label>
+                  <input type="file" id="edit-cert-file" class="form-input" accept=".pdf,.png,.jpg,.jpeg,.webp" style="padding: 8px;">
+                </div>
+                <div>
+                  <label class="form-label" for="edit-cert-url" style="font-size: 0.8rem;">Or Certificate URL</label>
+                  <input type="url" id="edit-cert-url" class="form-input" placeholder="https://... or uploaded file link">
+                </div>
+              </div>
+            </div>
+            <div id="edit-cert-status" style="font-size: 0.82rem; color: var(--success); margin-top: 8px; display: none;"></div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+            <button type="submit" class="btn btn-primary btn-lg">
+              💾 Save Profile Updates
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- Firebase Web SDK (v10.8.0) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>
